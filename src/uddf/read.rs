@@ -2874,12 +2874,12 @@ impl<'a> Reader<'a> {
             .max()
             .unwrap_or(0);
         let mut profile = Profile::new(duration);
-        profile.depth = depth.series();
-        profile.temperature = temperature.series();
-        profile.ndl = ndl.series();
-        profile.ppo2 = ppo2.series();
-        profile.cns = cns.series();
-        profile.gradient_factor = gradient_factor.series();
+        profile.depth = depth.into_series();
+        profile.temperature = temperature.into_series();
+        profile.ndl = ndl.into_series();
+        profile.ppo2 = ppo2.into_series();
+        profile.cns = cns.into_series();
+        profile.gradient_factor = gradient_factor.into_series();
         profile.pressures = pressures
             .into_iter()
             .filter_map(|(index, channel)| {
@@ -3151,7 +3151,7 @@ impl Channel {
         self.values.push(value);
     }
 
-    fn series(&self) -> Option<Series> {
-        (!self.times.is_empty()).then(|| Series::new(self.times.clone(), self.values.clone()))
+    fn into_series(self) -> Option<Series> {
+        (!self.times.is_empty()).then(|| Series::new(self.times, self.values))
     }
 }
