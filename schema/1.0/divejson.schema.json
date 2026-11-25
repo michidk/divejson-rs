@@ -1,0 +1,744 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://divejson.org/schema/1.0/divejson.schema.json",
+  "title": "DiveJSON 1.0",
+  "description": "A DiveJSON document: an open dive-log interchange format. This schema describes exactly the members version 1.0 defines; the normative specification is spec/divejson.md, and the requirements it lists as beyond-schema are checked by the reference validator, not here. Absence is the only spelling of \"not recorded\": no member accepts null.",
+  "type": "object",
+  "properties": {
+    "format": { "const": "divejson" },
+    "version": { "const": "1.0" },
+    "exported_at": { "$ref": "#/$defs/offset_date_time" },
+    "generator": { "$ref": "#/$defs/generator" },
+    "diver": { "$ref": "#/$defs/diver" },
+    "dives": { "type": "array", "items": { "$ref": "#/$defs/dive" } },
+    "trips": { "type": "array", "items": { "$ref": "#/$defs/trip" } },
+    "courses": { "type": "array", "items": { "$ref": "#/$defs/course" } },
+    "sites": { "type": "array", "items": { "$ref": "#/$defs/dive_site" } },
+    "species": { "type": "array", "items": { "$ref": "#/$defs/species" } },
+    "gear": { "type": "array", "items": { "$ref": "#/$defs/gear_item" } },
+    "gear_sets": { "type": "array", "items": { "$ref": "#/$defs/gear_set" } },
+    "gear_service_schedules": { "type": "array", "items": { "$ref": "#/$defs/gear_service_schedule" } },
+    "gear_service_records": { "type": "array", "items": { "$ref": "#/$defs/gear_service_record" } },
+    "certifications": { "type": "array", "items": { "$ref": "#/$defs/certification" } },
+    "contacts": { "type": "array", "items": { "$ref": "#/$defs/contact" } },
+    "people": { "type": "array", "items": { "$ref": "#/$defs/person" } },
+    "extensions": { "$ref": "#/$defs/extensions" }
+  },
+  "required": ["format", "version", "exported_at"],
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "uuid_list": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uuid" },
+      "uniqueItems": true
+    },
+    "date_time": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})?$"
+    },
+    "offset_date_time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "tags": {
+      "description": "The diver's labels for a dive or a dive site. uniqueItems rejects a tag written twice byte for byte; that no two tags are equal once trimmed and case-folded is a rule the validator checks, since two such tags are two different strings to uniqueItems.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "uniqueItems": true
+    },
+    "water_type": { "enum": ["salt", "fresh", "brackish"] },
+    "entry_type": { "enum": ["shore", "boat", "pier", "pool"] },
+    "extensions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]*$" }
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["latitude", "longitude"],
+      "additionalProperties": false
+    },
+    "bounding_box": {
+      "type": "object",
+      "properties": {
+        "south": { "type": "number", "minimum": -90, "maximum": 90 },
+        "north": { "type": "number", "minimum": -90, "maximum": 90 },
+        "west": { "type": "number", "minimum": -180, "maximum": 180 },
+        "east": { "type": "number", "minimum": -180, "maximum": 180 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["south", "north", "west", "east"],
+      "additionalProperties": false
+    },
+    "generator": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "diver": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "maxLength": 255 },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "born_on": { "$ref": "#/$defs/date" },
+        "emergency_contacts": { "type": "array", "items": { "$ref": "#/$defs/emergency_contact" } },
+        "insurances": { "type": "array", "items": { "$ref": "#/$defs/insurance" } },
+        "portrait_file": { "$ref": "#/$defs/stored_file" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+    "emergency_contact": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "relationship": { "type": "string", "maxLength": 64 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "insurance": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "number": { "type": "string", "maxLength": 64 },
+        "expires_on": { "$ref": "#/$defs/date" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["provider"],
+      "additionalProperties": false
+    },
+    "dive": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "number": { "type": "integer" },
+        "started_at": {
+          "anyOf": [{ "$ref": "#/$defs/date_time" }, { "$ref": "#/$defs/date" }]
+        },
+        "submerged_time": { "type": "integer", "exclusiveMinimum": 0 },
+        "notes": { "$ref": "#/$defs/notes" },
+        "type": {
+          "enum": ["open_circuit", "closed_circuit", "semi_closed", "freedive", "snorkel", "surface_supplied"]
+        },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "tags": { "$ref": "#/$defs/tags" },
+        "max_depth": { "type": "number", "exclusiveMinimum": 0 },
+        "avg_depth": { "type": "number", "exclusiveMinimum": 0 },
+        "bottom_temperature": { "type": "number" },
+        "visibility": { "type": "number", "minimum": 0 },
+        "weight": { "type": "number", "minimum": 0 },
+        "water_type": { "$ref": "#/$defs/water_type" },
+        "altitude": { "type": "integer", "minimum": -450, "maximum": 6500 },
+        "air_temperature": { "type": "number" },
+        "current": { "enum": ["none", "light", "moderate", "strong", "extreme"] },
+        "waves": { "enum": ["calm", "slight", "moderate", "rough"] },
+        "weather": { "enum": ["clear", "partly_cloudy", "overcast", "rain", "storm", "snow", "fog"] },
+        "entry_type": { "$ref": "#/$defs/entry_type" },
+        "boat_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "entry_position": { "$ref": "#/$defs/position" },
+        "exit_position": { "$ref": "#/$defs/position" },
+        "trip_uuid": { "$ref": "#/$defs/uuid" },
+        "course_uuid": { "$ref": "#/$defs/uuid" },
+        "contact_uuid": { "$ref": "#/$defs/uuid" },
+        "site_uuids": { "$ref": "#/$defs/uuid_list" },
+        "gear_uuids": { "$ref": "#/$defs/uuid_list" },
+        "sightings": { "type": "array", "items": { "$ref": "#/$defs/sighting" } },
+        "people": { "$ref": "#/$defs/people" },
+        "cylinders": { "type": "array", "items": { "$ref": "#/$defs/cylinder" } },
+        "recordings": { "type": "array", "items": { "$ref": "#/$defs/recording" } },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "started_at"],
+      "additionalProperties": false
+    },
+    "sighting": {
+      "description": "One species seen on one dive. That a sighting carries at most one of count and abundance is a rule this schema holds. That a dive's sightings name a species at most once is a rule the validator checks: uniqueItems compares whole sightings, and two sightings of one species with different counts are two different objects to it.",
+      "type": "object",
+      "properties": {
+        "species_uuid": { "$ref": "#/$defs/uuid" },
+        "count": { "type": "integer", "exclusiveMinimum": 0 },
+        "abundance": { "enum": ["few", "many", "abundant"] },
+        "notes": { "$ref": "#/$defs/notes" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["species_uuid"],
+      "not": { "required": ["count", "abundance"] },
+      "additionalProperties": false
+    },
+    "cylinder": {
+      "description": "One gas supply on one dive. That a dive's cylinders link a gear item at most once is a rule the validator checks: uniqueItems compares whole cylinders, and two cylinders linking one vessel with different pressures are two different objects to it.",
+      "type": "object",
+      "properties": {
+        "volume": { "type": "number", "exclusiveMinimum": 0 },
+        "start_pressure": { "type": "number", "exclusiveMinimum": 0, "maximum": 350 },
+        "end_pressure": { "type": "number", "minimum": 0, "maximum": 350 },
+        "oxygen": { "type": "number", "minimum": 0, "maximum": 100 },
+        "helium": { "type": "number", "minimum": 0, "maximum": 100 },
+        "ppo2_limit": { "type": "number", "minimum": 0.4, "maximum": 2.0 },
+        "gas_number": { "type": "integer", "minimum": 0 },
+        "role": { "enum": ["bottom", "deco", "diluent", "oxygen"] },
+        "usage": { "enum": ["parallel", "staged"] },
+        "gear_uuid": { "$ref": "#/$defs/uuid" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+    "recording": {
+      "type": "object",
+      "properties": {
+        "device": { "$ref": "#/$defs/device" },
+        "mode": { "enum": ["open_circuit", "closed_circuit", "semi_closed", "gauge", "freedive"] },
+        "deco_model": { "$ref": "#/$defs/deco_model" },
+        "salinity": { "enum": ["fresh", "en13319", "salt"] },
+        "started_at": { "$ref": "#/$defs/date_time" },
+        "surface_pressure": { "type": "number", "minimum": 0.4, "maximum": 1.2 },
+        "cns_start": { "type": "number", "minimum": 0 },
+        "cns_end": { "type": "number", "minimum": 0 },
+        "otu_start": { "type": "number", "minimum": 0 },
+        "otu_end": { "type": "number", "minimum": 0 },
+        "source_files": { "type": "array", "items": { "$ref": "#/$defs/stored_file" } },
+        "profile": { "$ref": "#/$defs/profile" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+    "deco_model": {
+      "type": "object",
+      "properties": {
+        "algorithm": { "enum": ["buhlmann", "rgbm"] },
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "gf_low": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "gf_high": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "conservatism": { "type": "integer" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "minProperties": 1,
+      "additionalProperties": false,
+      "dependentRequired": { "gf_low": ["gf_high"], "gf_high": ["gf_low"] }
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "brand": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "model": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "serial": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "firmware": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "dive_number": { "type": "integer", "minimum": 0 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "duration": { "type": "integer", "minimum": 0 },
+        "depth": { "$ref": "#/$defs/series" },
+        "ceiling": { "$ref": "#/$defs/series" },
+        "temperature": { "$ref": "#/$defs/series" },
+        "pressures": { "type": "array", "items": { "$ref": "#/$defs/pressure_series" } },
+        "ndl": { "$ref": "#/$defs/unsigned_series" },
+        "tts": { "$ref": "#/$defs/unsigned_series" },
+        "ppo2": { "$ref": "#/$defs/unsigned_series" },
+        "cns": { "$ref": "#/$defs/unsigned_series" },
+        "gradient_factor": { "$ref": "#/$defs/unsigned_series" },
+        "surface_gradient_factor": { "$ref": "#/$defs/unsigned_series" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["duration"],
+      "additionalProperties": false
+    },
+    "series": {
+      "type": "object",
+      "properties": {
+        "times": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "values": { "type": "array", "items": { "type": "integer" } },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["times", "values"],
+      "additionalProperties": false
+    },
+    "unsigned_series": {
+      "description": "A Series whose quantity has no negative reading: no-decompression time, time to surface, ppO2, CNS and the gradient factors. Depth, ceiling and temperature keep the signed definition above. A negative here is a device's absent-marker, which §5.4 spells as absence.",
+      "type": "object",
+      "properties": {
+        "times": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "values": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["times", "values"],
+      "additionalProperties": false
+    },
+    "pressure_series": {
+      "type": "object",
+      "properties": {
+        "times": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "values": { "type": "array", "items": { "type": "integer" } },
+        "gas_number": { "type": "integer", "minimum": 0 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["times", "values", "gas_number"],
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "time": { "type": "integer", "minimum": 0 },
+        "type": {
+          "enum": [
+            "gas_switch", "deep_stop", "safety_stop", "bookmark",
+            "ascent_rate", "safety_stop_mandatory", "safety_stop_violation",
+            "deep_stop_violation", "ceiling_violation", "ndl_reached",
+            "ppo2_high", "pressure_low", "depth_alarm"
+          ]
+        },
+        "gas_number": { "type": "integer", "minimum": 0 },
+        "label": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["time"],
+      "additionalProperties": false,
+      "if": {
+        "not": { "required": ["type"] }
+      },
+      "then": {
+        "required": ["label"],
+        "properties": { "label": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "stored_file": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "original_filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "content_type": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "byte_size": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "archive_path": { "type": "string", "minLength": 1 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "original_filename", "content_type", "byte_size", "sha256"],
+      "additionalProperties": false
+    },
+    "trip": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/trip_part" } },
+        "people": { "$ref": "#/$defs/people" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "trip_part": {
+      "type": "object",
+      "properties": {
+        "starts_on": { "$ref": "#/$defs/date" },
+        "ends_on": { "$ref": "#/$defs/date" },
+        "location": { "$ref": "#/$defs/location" },
+        "accommodation_uuid": { "$ref": "#/$defs/uuid" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "position": { "$ref": "#/$defs/position" },
+        "bbox": { "$ref": "#/$defs/bounding_box" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "dependentRequired": { "bbox": ["position"] }
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": { "type": "string", "maxLength": 255 },
+        "city": { "type": "string", "maxLength": 255 },
+        "postcode": { "type": "string", "maxLength": 32 },
+        "region": { "type": "string", "maxLength": 255 },
+        "country": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["country"],
+      "additionalProperties": false
+    },
+    "course": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "agency": {
+          "enum": [
+            "padi", "ssi", "naui", "sdi", "tdi", "cmas", "raid", "bsac",
+            "gue", "iantd", "psai", "dan", "efr", "andi", "snsi", "acuc",
+            "pss", "ida", "ndl", "utd", "saa", "scotsac", "iac", "protec",
+            "pdic", "nase", "sei", "ymca", "erdi", "aida", "molchanovs", "pfi",
+            "apnea_academy", "fii", "nss_cds", "nacd", "idea", "diwa", "other"
+          ]
+        },
+        "agency_other": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "status": {
+          "enum": ["planned", "in_progress", "completed", "incomplete", "provisional", "not_passed"]
+        },
+        "starts_on": { "$ref": "#/$defs/date" },
+        "ends_on": { "$ref": "#/$defs/date" },
+        "instructor_number": { "type": "string", "maxLength": 64 },
+        "contact_uuid": { "$ref": "#/$defs/uuid" },
+        "people": { "$ref": "#/$defs/people" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false,
+      "if": {
+        "properties": { "agency": { "const": "other" } },
+        "required": ["agency"]
+      },
+      "then": {
+        "required": ["agency_other"]
+      },
+      "else": {
+        "not": { "required": ["agency_other"] }
+      }
+    },
+    "dive_site": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "other_names": {
+          "description": "Other names the site goes by, in the diver's own order. uniqueItems rejects a name written twice byte for byte; that none repeats another or the site's name once trimmed and case-folded is a rule the validator checks.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "uniqueItems": true
+        },
+        "location": { "$ref": "#/$defs/location" },
+        "position": { "$ref": "#/$defs/position" },
+        "external_ids": {
+          "description": "The place's entries in registries outside the logbook. uniqueItems rejects an entry written twice whole; that no two name the same registry and identifier is a rule the validator checks, since two such entries are two different objects to uniqueItems whenever anything beside the pair differs.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/external_id" },
+          "uniqueItems": true
+        },
+        "depth_from": { "type": "number", "minimum": 0 },
+        "depth_to": { "type": "number", "minimum": 0 },
+        "water_type": { "$ref": "#/$defs/water_type" },
+        "altitude": { "type": "integer", "minimum": -450, "maximum": 6500 },
+        "entry_types": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/entry_type" },
+          "uniqueItems": true
+        },
+        "tags": { "$ref": "#/$defs/tags" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "external_id": {
+      "description": "One entry of a dive site or a species in a registry outside the logbook. A registry this version names holds its identifier to that registry's form; any other is carried as written.",
+      "type": "object",
+      "properties": {
+        "registry": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "identifier": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["registry", "identifier"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "registry": { "const": "wikidata" } },
+            "required": ["registry"]
+          },
+          "then": {
+            "properties": { "identifier": { "pattern": "^Q[1-9][0-9]*$" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "registry": { "const": "openstreetmap" } },
+            "required": ["registry"]
+          },
+          "then": {
+            "properties": { "identifier": { "pattern": "^(node|way|relation)/[1-9][0-9]*$" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "registry": { "const": "worms" } },
+            "required": ["registry"]
+          },
+          "then": {
+            "properties": { "identifier": { "pattern": "^[1-9][0-9]*$" } }
+          }
+        }
+      ]
+    },
+    "species": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "external_ids": {
+          "description": "The taxon's entries in registries outside the logbook, at most one of them under worms. uniqueItems rejects an entry written twice whole; that no two name the same registry and identifier is a rule the validator checks, since two such entries are two different objects to uniqueItems whenever anything beside the pair differs.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/external_id" },
+          "uniqueItems": true,
+          "contains": {
+            "properties": { "registry": { "const": "worms" } },
+            "required": ["registry"]
+          },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        "scientific_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "common_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "rank": { "type": "string", "maxLength": 64 },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid"],
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["scientific_name"] },
+        { "required": ["common_name"] },
+        {
+          "properties": { "external_ids": { "minItems": 1 } },
+          "required": ["external_ids"]
+        }
+      ]
+    },
+    "gear_item": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "brand": { "type": "string", "maxLength": 255 },
+        "serial": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "type": {
+          "enum": [
+            "mask", "snorkel", "fins", "wetsuit", "drysuit", "vest", "hood",
+            "gloves", "boots", "bcd", "backplate", "wing", "regulator",
+            "rebreather", "computer", "transmitter", "cylinder", "light",
+            "scooter", "smb", "mirror", "whistle", "reel", "knife",
+            "line_cutter", "shears", "compass", "camera", "other"
+          ]
+        },
+        "volume": { "type": "number", "exclusiveMinimum": 0 },
+        "working_pressure": { "type": "number", "exclusiveMinimum": 0, "maximum": 350 },
+        "material": { "enum": ["steel", "aluminium", "carbon"] },
+        "notes": { "$ref": "#/$defs/notes" },
+        "rented": { "type": "boolean" },
+        "archived": { "type": "boolean" },
+        "archived_at": { "$ref": "#/$defs/date_time" },
+        "dive_count": { "type": "integer", "minimum": 0 },
+        "dive_time": { "type": "integer", "minimum": 0 },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "gear_set": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "weight": { "type": "number", "minimum": 0 },
+        "gear_uuids": { "$ref": "#/$defs/uuid_list" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "service_type": {
+      "enum": ["service", "visual_inspection", "hydrostatic_test", "battery", "oxygen_clean", "other"]
+    },
+    "gear_service_schedule": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "gear_uuid": { "$ref": "#/$defs/uuid" },
+        "type": { "$ref": "#/$defs/service_type" },
+        "label": { "type": "string", "maxLength": 120 },
+        "starts_on": { "$ref": "#/$defs/date" },
+        "interval_months": { "type": "integer", "exclusiveMinimum": 0 },
+        "interval_dives": { "type": "integer", "exclusiveMinimum": 0 },
+        "interval_hours": { "type": "integer", "exclusiveMinimum": 0 },
+        "dive_count_at_start": { "type": "integer", "minimum": 0 },
+        "dive_time_at_start": { "type": "integer", "minimum": 0 },
+        "active": { "type": "boolean" },
+        "last_service_on": { "$ref": "#/$defs/date" },
+        "next_due_on": { "$ref": "#/$defs/date" },
+        "next_due_at_dive_count": { "type": "integer", "minimum": 0 },
+        "next_due_at_dive_time": { "type": "integer", "minimum": 0 },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "gear_uuid", "type", "starts_on"],
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["interval_months"] },
+        { "required": ["interval_dives"] },
+        { "required": ["interval_hours"] }
+      ]
+    },
+    "gear_service_record": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "gear_uuid": { "$ref": "#/$defs/uuid" },
+        "gear_service_schedule_uuid": { "$ref": "#/$defs/uuid" },
+        "type": { "$ref": "#/$defs/service_type" },
+        "serviced_on": { "$ref": "#/$defs/date" },
+        "dive_count_at_service": { "type": "integer", "minimum": 0 },
+        "dive_time_at_service": { "type": "integer", "minimum": 0 },
+        "label": { "type": "string", "maxLength": 120 },
+        "performed_by": { "type": "string", "maxLength": 255 },
+        "contact_uuid": { "$ref": "#/$defs/uuid" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "gear_uuid", "type", "serviced_on"],
+      "additionalProperties": false
+    },
+    "certification": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "agency": {
+          "enum": [
+            "padi", "ssi", "naui", "sdi", "tdi", "cmas", "raid", "bsac",
+            "gue", "iantd", "psai", "dan", "efr", "andi", "snsi", "acuc",
+            "pss", "ida", "ndl", "utd", "saa", "scotsac", "iac", "protec",
+            "pdic", "nase", "sei", "ymca", "erdi", "aida", "molchanovs", "pfi",
+            "apnea_academy", "fii", "nss_cds", "nacd", "idea", "diwa", "other"
+          ]
+        },
+        "agency_other": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "number": { "type": "string", "maxLength": 64 },
+        "certified_on": { "$ref": "#/$defs/date" },
+        "expires_on": { "$ref": "#/$defs/date" },
+        "instructor_uuid": { "$ref": "#/$defs/uuid" },
+        "instructor_number": { "type": "string", "maxLength": 64 },
+        "contact_uuid": { "$ref": "#/$defs/uuid" },
+        "course_uuid": { "$ref": "#/$defs/uuid" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "front_file": { "$ref": "#/$defs/stored_file" },
+        "back_file": { "$ref": "#/$defs/stored_file" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "agency", "name"],
+      "additionalProperties": false,
+      "if": {
+        "properties": { "agency": { "const": "other" } },
+        "required": ["agency"]
+      },
+      "then": {
+        "required": ["agency_other"]
+      },
+      "else": {
+        "not": { "required": ["agency_other"] }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "roles": {
+          "type": "array",
+          "items": {
+            "enum": ["dive_center", "school", "shop", "accommodation", "liveaboard", "club", "other"]
+          },
+          "uniqueItems": true
+        },
+        "phone": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "website": { "type": "string", "format": "uri", "maxLength": 512 },
+        "address": { "$ref": "#/$defs/address" },
+        "position": { "$ref": "#/$defs/position" },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "person": {
+      "type": "object",
+      "properties": {
+        "uuid": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "notes": { "$ref": "#/$defs/notes" },
+        "created_at": { "$ref": "#/$defs/date_time" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["uuid", "name"],
+      "additionalProperties": false
+    },
+    "people": {
+      "description": "A host's references to people, in the diver's own order. That no person appears twice is a rule the validator checks: uniqueItems compares whole references, and two references to one person under two roles are two different objects to it.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/person_reference" }
+    },
+    "person_reference": {
+      "type": "object",
+      "properties": {
+        "person_uuid": { "$ref": "#/$defs/uuid" },
+        "role": { "enum": ["buddy", "guide", "instructor", "student", "companion"] },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      },
+      "required": ["person_uuid"],
+      "additionalProperties": false
+    }
+  }
+}

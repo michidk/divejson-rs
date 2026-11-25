@@ -1,0 +1,137 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-05T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "29e7c994-34d6-5135-940d-1ec2b3a7e42d",
+      "started_at": "2025-06-03T12:15:30.310+02:00",
+      "submerged_time": 4683,
+      "max_depth": 46.29,
+      "avg_depth": 17.79,
+      "cylinders": [
+        {
+          "volume": 22.0,
+          "start_pressure": 207.14062,
+          "end_pressure": 122.4375,
+          "oxygen": 21.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.4,
+          "role": "bottom",
+          "gas_number": 0
+        },
+        {
+          "volume": 11.0,
+          "oxygen": 49.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.6,
+          "role": "bottom",
+          "gas_number": 1
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "firmware": "3.0.2143",
+            "name": "Suunto D5"
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "algorithm": "rgbm",
+            "name": "Suunto Fused RGBM 2"
+          },
+          "surface_pressure": 1.049,
+          "cns_start": 7.2,
+          "cns_end": 15.3,
+          "otu_start": 23.09649658203125,
+          "otu_end": 45.12766647338867,
+          "profile": {
+            "duration": 4683000,
+            "depth": {
+              "times": [
+                0,
+                2000000,
+                4000000,
+                4683000
+              ],
+              "values": [
+                110,
+                4629,
+                2100,
+                500
+              ]
+            },
+            "ceiling": {
+              "times": [
+                2000000
+              ],
+              "values": [
+                300
+              ]
+            },
+            "temperature": {
+              "times": [
+                0,
+                2000000
+              ],
+              "values": [
+                2060,
+                1820
+              ]
+            },
+            "pressures": [
+              {
+                "times": [
+                  0,
+                  2000000,
+                  4683000
+                ],
+                "values": [
+                  2071,
+                  1500,
+                  1178
+                ],
+                "gas_number": 0
+              }
+            ],
+            "events": [
+              {
+                "time": 0,
+                "type": "gas_switch",
+                "gas_number": 0
+              },
+              {
+                "time": 4000000,
+                "type": "gas_switch",
+                "gas_number": 1
+              },
+              {
+                "time": 4000000,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 4683000,
+                "type": "safety_stop"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "suunto_json",
+      "source_generator": {
+        "name": "Suunto D5",
+        "version": "3.0.2143"
+      }
+    }
+  }
+}

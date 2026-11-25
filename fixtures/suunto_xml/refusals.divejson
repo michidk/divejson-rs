@@ -1,0 +1,95 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-07T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "c4b3ed00-9b9e-5374-9280-13b157ad8761",
+      "started_at": "2025-03-27T12:06:00",
+      "submerged_time": 1800,
+      "max_depth": 20.5,
+      "bottom_temperature": 24.0,
+      "cylinders": [
+        {
+          "volume": 12.0,
+          "start_pressure": 210.0,
+          "end_pressure": 90.0,
+          "gas_number": 0
+        },
+        {
+          "volume": 11.0,
+          "start_pressure": 200.0,
+          "end_pressure": 120.0,
+          "oxygen": 50.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.6,
+          "gas_number": 1
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "model": "Suunto D5",
+            "serial": "192410004212",
+            "firmware": "3.0.2143",
+            "dive_number": 1
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "conservatism": 0
+          },
+          "cns_start": 0.0,
+          "cns_end": 12.0,
+          "otu_start": 0.0,
+          "otu_end": 30.0,
+          "profile": {
+            "duration": 21000,
+            "depth": {
+              "times": [
+                1000,
+                21000
+              ],
+              "values": [
+                186,
+                1840
+              ]
+            },
+            "temperature": {
+              "times": [
+                1000,
+                11000,
+                21000
+              ],
+              "values": [
+                2450,
+                2430,
+                2410
+              ]
+            },
+            "events": [
+              {
+                "time": 1200000,
+                "type": "gas_switch",
+                "gas_number": 1
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "suunto_xml",
+      "source_generator": {
+        "name": "Suunto D5",
+        "version": "3.0.2143"
+      }
+    }
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-11T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "29e7c994-34d6-5135-940d-1ec2b3a7e42d",
+      "started_at": "2021-04-06T12:31:34.450+02:00",
+      "submerged_time": 2831,
+      "max_depth": 25.37,
+      "avg_depth": 14.54,
+      "cylinders": [
+        {
+          "volume": 12.0,
+          "oxygen": 21.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.4,
+          "role": "bottom",
+          "gas_number": 0
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "serial": "192410004212",
+            "firmware": "2.5.1947",
+            "name": "Suunto D5",
+            "dive_number": 6
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "algorithm": "rgbm",
+            "name": "Suunto Fused2 RGBM",
+            "conservatism": 0
+          },
+          "surface_pressure": 1.046,
+          "cns_start": 3.0,
+          "cns_end": 7.1,
+          "otu_start": 3.5761935710906982,
+          "otu_end": 11.986471176147461,
+          "profile": {
+            "duration": 2831310,
+            "depth": {
+              "times": [
+                470,
+                470530,
+                940740,
+                1390950,
+                1400950,
+                1410940,
+                1420950,
+                1430950,
+                1440950,
+                1460960,
+                1891160,
+                2361240,
+                2831310
+              ],
+              "values": [
+                129,
+                2080,
+                2294,
+                1800,
+                1726,
+                1640,
+                1611,
+                1613,
+                1725,
+                1930,
+                1291,
+                539,
+                0
+              ]
+            },
+            "ceiling": {
+              "times": [
+                1460960,
+                1891160,
+                2361240
+              ],
+              "values": [
+                300,
+                300,
+                300
+              ]
+            },
+            "temperature": {
+              "times": [
+                470,
+                470530,
+                940740,
+                1390950,
+                1400950,
+                1410940,
+                1420950,
+                1430950,
+                1440950,
+                1460960,
+                1891160,
+                2361240,
+                2831310
+              ],
+              "values": [
+                2510,
+                2190,
+                2190,
+                2190,
+                2200,
+                2200,
+                2190,
+                2190,
+                2190,
+                2190,
+                2180,
+                2200,
+                2200
+              ]
+            },
+            "ndl": {
+              "times": [
+                470,
+                470530,
+                940740,
+                1390950,
+                1400950,
+                1410940,
+                1420950,
+                1430950,
+                1440950,
+                2831310
+              ],
+              "values": [
+                6000,
+                840,
+                240,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                6000
+              ]
+            },
+            "tts": {
+              "times": [
+                470530,
+                940740,
+                1390950,
+                1400950,
+                1410940,
+                1420950,
+                1430950,
+                1440950,
+                1460960,
+                1891160,
+                2361240,
+                2831310
+              ],
+              "values": [
+                188,
+                200,
+                136,
+                132,
+                124,
+                124,
+                124,
+                128,
+                188,
+                446,
+                192,
+                8
+              ]
+            },
+            "events": [
+              {
+                "time": 0,
+                "type": "gas_switch",
+                "gas_number": 0
+              },
+              {
+                "time": 205970,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 205970,
+                "type": "safety_stop_mandatory",
+                "label": "Mandatory Safety Stop"
+              },
+              {
+                "time": 1093940,
+                "type": "deep_stop"
+              },
+              {
+                "time": 1296970,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 1451010,
+                "type": "ndl_reached"
+              },
+              {
+                "time": 1760950,
+                "type": "deep_stop"
+              },
+              {
+                "time": 1935950,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 2148950,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 2628960,
+                "type": "safety_stop"
+              },
+              {
+                "time": 2738970,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 2738970,
+                "type": "safety_stop"
+              },
+              {
+                "time": 2738970,
+                "type": "safety_stop_mandatory",
+                "label": "Mandatory Safety Stop"
+              },
+              {
+                "time": 2738970,
+                "type": "safety_stop_violation",
+                "label": "Safety Stop Broken"
+              },
+              {
+                "time": 2739970,
+                "type": "safety_stop_violation",
+                "label": "Mandatory Safety Stop Broken"
+              },
+              {
+                "time": 2774990,
+                "type": "safety_stop"
+              },
+              {
+                "time": 2774990,
+                "type": "safety_stop_violation",
+                "label": "Safety Stop Broken"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "suunto_json",
+      "source_generator": {
+        "name": "Suunto D5",
+        "version": "2.5.1947"
+      }
+    }
+  }
+}

@@ -1,0 +1,279 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-11T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "29e7c994-34d6-5135-940d-1ec2b3a7e42d",
+      "started_at": "2025-06-03T12:15:33.800+02:00",
+      "submerged_time": 4683,
+      "max_depth": 46.29,
+      "avg_depth": 17.79,
+      "cylinders": [
+        {
+          "volume": 22.0,
+          "start_pressure": 207.14062,
+          "end_pressure": 122.4375,
+          "oxygen": 21.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.4,
+          "role": "bottom",
+          "gas_number": 0
+        },
+        {
+          "volume": 11.0,
+          "oxygen": 49.0,
+          "helium": 0.0,
+          "ppo2_limit": 1.6,
+          "role": "bottom",
+          "gas_number": 1
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "serial": "192410004212",
+            "firmware": "3.0.2143",
+            "name": "Suunto D5",
+            "dive_number": 6
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "algorithm": "rgbm",
+            "name": "Suunto Fused2 RGBM",
+            "conservatism": -1
+          },
+          "surface_pressure": 1.057,
+          "cns_start": 0.0,
+          "cns_end": 19.9,
+          "otu_start": 0.0,
+          "otu_end": 52.996395111083984,
+          "profile": {
+            "duration": 4683470,
+            "depth": {
+              "times": [
+                860,
+                781270,
+                1131830,
+                1141840,
+                1151840,
+                1161840,
+                1171850,
+                1181850,
+                1561970,
+                2342250,
+                3122670,
+                3902990,
+                4683470
+              ],
+              "values": [
+                124,
+                2608,
+                4261,
+                4324,
+                4395,
+                4416,
+                4452,
+                4479,
+                4430,
+                2102,
+                700,
+                520,
+                5
+              ]
+            },
+            "ceiling": {
+              "times": [
+                1181850,
+                1561970,
+                2342250,
+                3122670
+              ],
+              "values": [
+                300,
+                711,
+                1211,
+                376
+              ]
+            },
+            "temperature": {
+              "times": [
+                860,
+                781270,
+                1131830,
+                1141840,
+                1151840,
+                1161840,
+                1171850,
+                1181850,
+                1561970,
+                2342250,
+                3122670,
+                3902990,
+                4683470
+              ],
+              "values": [
+                2400,
+                2350,
+                2370,
+                2370,
+                2360,
+                2360,
+                2360,
+                2350,
+                2360,
+                2290,
+                2310,
+                2320,
+                2340
+              ]
+            },
+            "pressures": [
+              {
+                "times": [
+                  860,
+                  781270,
+                  1131830,
+                  1141840,
+                  1151840,
+                  1161840,
+                  1171850,
+                  1181850,
+                  1561970,
+                  2342250,
+                  3122670,
+                  3902990,
+                  4683470
+                ],
+                "values": [
+                  2071,
+                  1922,
+                  1771,
+                  1765,
+                  1757,
+                  1748,
+                  1748,
+                  1746,
+                  1539,
+                  1222,
+                  1233,
+                  1232,
+                  1178
+                ],
+                "gas_number": 0
+              }
+            ],
+            "ndl": {
+              "times": [
+                860,
+                781270,
+                1131830,
+                1141840,
+                1151840,
+                1161840,
+                1171850,
+                3902990,
+                4683470
+              ],
+              "values": [
+                6000,
+                1200,
+                0,
+                0,
+                0,
+                0,
+                0,
+                6000,
+                6000
+              ]
+            },
+            "tts": {
+              "times": [
+                781270,
+                1131830,
+                1141840,
+                1151840,
+                1161840,
+                1171850,
+                1181850,
+                1561970,
+                2342250,
+                3122670,
+                3902990,
+                4683470
+              ],
+              "values": [
+                156,
+                256,
+                260,
+                264,
+                268,
+                268,
+                272,
+                618,
+                1440,
+                769,
+                32,
+                8
+              ]
+            },
+            "events": [
+              {
+                "time": 0,
+                "type": "gas_switch",
+                "gas_number": 0
+              },
+              {
+                "time": 948940,
+                "type": "depth_alarm",
+                "label": "Max.Depth"
+              },
+              {
+                "time": 1173110,
+                "type": "ndl_reached"
+              },
+              {
+                "time": 2147980,
+                "type": "ascent_rate",
+                "label": "Ascent Speed"
+              },
+              {
+                "time": 2147980,
+                "type": "safety_stop_mandatory",
+                "label": "Mandatory Safety Stop"
+              },
+              {
+                "time": 2355570,
+                "type": "gas_switch",
+                "gas_number": 1
+              },
+              {
+                "time": 2858150,
+                "type": "ceiling_violation",
+                "label": "Ceiling Broken"
+              },
+              {
+                "time": 3840970,
+                "type": "safety_stop"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "suunto_json",
+      "source_generator": {
+        "name": "Suunto D5",
+        "version": "3.0.2143"
+      }
+    }
+  }
+}

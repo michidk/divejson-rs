@@ -1,0 +1,1039 @@
+# Reading UDDF into DiveJSON
+
+**Non-normative.** The specification is [`spec/divejson.md`](https://github.com/divejson/divejson/blob/main/spec/divejson.md); nothing
+here changes what a conforming document is.
+
+**The rules that hold for every source format are in
+[`converting.md`](converting.md)** — leniency, identity, units and arithmetic, what a
+report is, what a converter refuses to guess. This document carries only what is UDDF's:
+its element map, the dialects it has to read, its own identity namespace, its ambiguities,
+and what it deliberately leaves unmapped.
+
+It is also where a future reader learns why a `0.012` and a `12` are the same cylinder.
+
+## Why a converter at all
+
+UDDF is the nominal incumbent and the format most of a diver's history is trapped in. It
+has been frozen since 2018, its own site's certificate has expired, and the documentation
+contradicts its schema in at least one load-bearing place. What actually ships is a family
+of dialects: two real third-party exports checked while this converter was written both
+fail the 3.2.2 XSD, and they fail structurally rather than at the margins.
+
+That is the file that taught `converting.md`'s first rule, and this is the format it was
+written against.
+
+## Parsing
+
+### Tags are matched on their lowercased local name
+
+UDDF appears under at least four root shapes:
+
+| shape | seen from |
+| --- | --- |
+| namespace `http://www.streit.cc/uddf/3.2/` | Subsurface, and this format's reference writer |
+| namespace `http://www.streit.cc/uddf/3.1/` | older 3.1 writers |
+| no namespace at all | divelogs.de, APD DiveSight |
+| uppercase `<UDDF>` | 2.x writers |
+
+Stripping `{uri}` and lowercasing collapses all four into one code path. Attribute names
+are matched the same way, since a 2.x file spells them `ID` and `REF`. The alternative is
+the union XPaths Subsurface's own maintainers describe as unwieldy, one per element.
+
+The `@version` attribute is carried into the output's provenance block but selects
+nothing: see *element order* below.
+
+### Children are taken by name, never by position
+
+`diveType`'s child sequence changed between 3.2.1 and 3.2.2 — `tankdata` and `samples`
+swap, and so do `applicationdata` and `informationbeforedive` — while the namespace stayed
+byte-identical. A 3.2.1-correct file is therefore order-invalid under 3.2.2 and the
+reverse, and the namespace cannot tell you which you have. divelogs.de writes `<tankdata>`
+first; Subsurface writes it after `<informationbeforedive>`. Since the converter does not
+gate on validation anyway, the honest reading is to be order-insensitive: take children by
+name and let the order be whatever it is.
+
+Waypoints are the one exception, and even there position is not what orders them: they are
+sorted by their own recorded `<divetime>`, under `converting.md`'s sample-ordering rule.
+
+### What UDDF's leniencies look like
+
+The rules are in `converting.md`; these are the elements that produced each of them.
+
+- **Whitespace in ids and refs.** Subsurface writes one site id as `" ff47210"`, with the
+  leading space, and the `<link ref>`s pointing at it carry the space too — so stripping
+  has to happen on both sides or the reference stops resolving.
+- **`<latitude/>`.** An empty element is Subsurface saying it has no coordinates.
+- **Ids the XSD refuses.** `mix(21/0)` carries parentheses and `2bbb3390` begins with a
+  digit, so neither is an `NCName`; both are what Subsurface writes and both are read.
+- **`<name>`.** A `<name>` of pure whitespace is no name.
+
+### A `<!DOCTYPE>` is refused outright
+
+UDDF has no legitimate use for a document type declaration. The refusal and its reasoning
+are `converting.md`'s, and this reader shares the parse target that carries it.
+
+## Units
+
+The factors. The arithmetic they run on, and why a wrong one is the most expensive mistake
+in a converter, are in `converting.md`.
+
+| DiveJSON member | DiveJSON unit | UDDF element | UDDF unit | factor |
+| --- | --- | --- | --- | --- |
+| `profile.depth` values | centimetres | `<waypoint><depth>` | metres | × 100 |
+| `profile.temperature` values | hundredths of a °C | `<waypoint><temperature>` | Kelvin | (K − 273.15) × 100 |
+| `profile.pressures[]` values | tenths of a bar | `<waypoint><tankpressure>` | Pascal | ÷ 100 000 × 10 |
+| `profile.duration`, `times` | milliseconds | `<waypoint><divetime>` | seconds, `xs:float` | × 1 000, to a whole millisecond |
+| `profile.ndl` values | seconds | `<waypoint><nodecotime>` | seconds | — |
+| `profile.ppo2` values | hundredths of a bar | `<waypoint><calculatedpo2>` | bar or Pascal, and see below | × 100, or ÷ 1000 |
+| `profile.cns` values | tenths of a percent | `<waypoint><cns>` | percent | × 10 |
+| `profile.gradient_factor` values | whole percent | `<waypoint><gradientfactor>` | percent or fraction, and see below | — , or × 100 |
+| `deco_model.gf_low`, `.gf_high` | whole percent | `<gradientfactorlow>`, `<gradientfactorhigh>` | fraction, and see below | × 100, or — |
+| `max_depth`, `avg_depth` | metres | `<greatestdepth>`, `<averagedepth>` | metres | — |
+| a site's `depth_from`, `depth_to` | metres | `<minimumdepth>`, `<maximumdepth>` | metres | — |
+| `bottom_temperature` | °C | `<lowesttemperature>` | Kelvin | K − 273.15 |
+| `air_temperature` | °C | `<airtemperature>` | Kelvin | K − 273.15 |
+| `cylinders[].start_pressure`, `.end_pressure` | bar | `<tankpressurebegin>`, `<tankpressureend>` | Pascal | ÷ 100 000 |
+| a recording's `surface_pressure` | bar | `<surfacepressure>` | Pascal | ÷ 100 000 |
+| `cylinders[].volume`, a gear item's `volume` | litres | `<tankvolume>` | cubic metres | × 1000, and see below |
+| `cylinders[].oxygen`, `.helium` | percent | `<o2>`, `<he>` | fraction | × 100, and see below |
+| `cylinders[].ppo2_limit` | bar | `<maximumpo2>` | bar | — the one pressure UDDF does not express in Pascal |
+| `weight` | kilograms | `<leadquantity>` | kilograms | — |
+| `visibility`, `altitude` | metres | `<visibility>`, `<altitude>` | metres | — |
+
+## Identity
+
+The rules are `converting.md`'s. UDDF's namespace, fixed forever, is
+`1b85a949-d5f7-5d67-9d04-dcc78342f907`, itself
+`uuid5(NAMESPACE_URL, "https://divejson.org/ns/uddf")`.
+
+The two UDDF facts those rules answer to: `xs:ID` is an `NCName` and cannot begin with a
+digit, which a hex UUID regularly does, so a writer holding real UUIDs prefixes them — this
+format's reference writer writes `dive-019fec36-b9ec-71c6-a03e-64f59b8b92b1`, and
+the prefix is stripped back off. And a source id is not unique within a file: every
+`<dive>` in a Subsurface export reuses its enclosing `<repetitiongroup>`'s id, which is why
+the record kind is part of the hash.
+
+## The element map
+
+Everything the converter reads. Anything not here is not read — see *deliberately not
+mapped* below.
+
+### Document
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `/uddf/@version` | `extensions.divejson.uddf_version` |
+| `/uddf/generator/name`, `/version` | `extensions.divejson.source_generator` |
+| — | `generator` — **the converter**, not the source |
+| — | `exported_at` — the moment of conversion, always offset-aware |
+
+### Diver — `/uddf/diver/owner`
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `personal/firstname` + `middlename` + `lastname` | `diver.name`, joined with spaces |
+| `contact/email` | `diver.email` |
+| `contact/phone`, else `contact/mobilephone` | `diver.phone` — the first `<phone>`, or the first `<mobilephone>` where there is none |
+| `personal/birthdate/datetime` | `diver.born_on` |
+| `diveinsurances/insurance` | `diver.insurances[]`, in file order |
+| `diveinsurances/insurance/name` | `diver.insurances[].provider` — REQUIRED, so an insurance whose `<name>` holds no text is dropped |
+| `diveinsurances/insurance/validdate/datetime` | `diver.insurances[].expires_on` |
+| `@id` | `diver.uuid` |
+
+**An owner is a diver when it records anything this table maps**, `@id` aside. An
+`<owner>` whose names are empty and which carries a `<birthdate>` reads to a diver with a
+`born_on` and no `name`; one carrying nothing the table maps reads to no diver at all
+(§6.1). Nothing fills `diver.emergency_contacts` or an insurance's `number`: UDDF has no
+element for either.
+
+**Nothing fills `diver.portrait_file`, and a linked image is not read as one.** `<owner>`
+has no image of its own. The one route to a picture, a `<notes><link ref>` to a
+`<mediadata><image>`, carries no role: UDDF's own documentation of `<owner>` links an
+equipment photo, a group photo, an audio clip and a video that way, so a reader taking the
+first linked image for a portrait would import a boat photo as the diver's face. The
+`<image>` also names its file by a path whose bytes the UDDF file does not carry, so a Stored
+File's digest and size (§6.7) could only be invented.
+
+**`@id` is never read as a name or a handle.** It is an XML id, and Subsurface's is the
+literal string `owner`.
+
+`<contact><email>` is UDDF's instance of `converting.md`'s constrained-member guard: one
+holding `n/a`, a dash or a person's name is read as no email recorded, and reported.
+
+**`<birthdate>` and `<validdate>` hold a date in a date-time slot** — each is
+`encapsulatedDateTimeType`, whose one child is an `xs:dateTime` — and §6.1's members are
+dates, so the date is taken off the front of the `<datetime>` and the time of day, which a
+writer supplies only because the slot demands one, is discarded without a finding. A bare
+date, the spelling UDDF's own documentation uses in its examples, reads the same way. Text
+that is not a date is dropped and reported.
+
+**What is read stays within §6.1's bounds**, since a converter's output that fails
+validation fails the whole file. A provider longer than 255 characters is cut to 255 and
+reported, the way a diver's name is; a phone longer than 32, or an email longer than 255,
+is dropped and reported instead, a number or an address with its end cut off being a wrong
+one rather than a short one.
+
+### Dive sites — `/uddf/divesite/site`
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `name` | `sites[].name` — REQUIRED, so a nameless site is dropped |
+| `aliasname` | `sites[].other_names`, in file order — see below |
+| `geography/location` | `sites[].location.name` — the only slot UDDF has for a locality, so nothing else of the place is filled in |
+| `geography/latitude` + `longitude` | `sites[].position` |
+| `geography/altitude` | `sites[].altitude`, rounded to the whole metre with halves away from zero, as a dive's `<altitude>` is |
+| `sitedata/minimumdepth` | `sites[].depth_from` |
+| `sitedata/maximumdepth` | `sites[].depth_to` |
+| `notes/para` | `sites[].notes`, paragraphs joined with blank lines |
+
+UDDF has no slot for a site's entry, its tags, the kind of water it holds or an identifier
+from outside the file, so a site read from UDDF never carries `entry_types`, `tags`,
+`water_type` or `external_ids`. `<environment>` and `<density>` come nearest the third, and
+*Deliberately not mapped* says why neither is read.
+
+**An `<aliasname>` is carried where it says something the record does not.** One that
+repeats the site's name or an earlier `<aliasname>` once trimmed and case-folded — §3's
+comparison — is neither carried nor reported: the document would be refused for it, and it
+records nothing the name does not. An empty one is no name and is skipped. Each is held to
+§6.10's 255 characters as the name is, cut and reported, and compared after the cut, which is
+the text the document holds.
+
+**The depths and the altitude meet their bounds.** A `<minimumdepth>` or `<maximumdepth>`
+above the surface — below zero — is dropped and reported, alone. A `<minimumdepth>` deeper
+than the `<maximumdepth>` drops the pair together, reported, as half a coordinate pair goes:
+the file does not say which of the two is wrong, and adjusting either to fit would be
+inventing it. An `<altitude>` outside −450 to 6500 is dropped and reported, as a dive's is.
+
+**Every other child of a `<site>`, its `<geography>` and its `<sitedata>` is reported**, by
+element name and once per name on each site, in the contact reader's manner: §6.10 has no
+member for it, and a reader says so rather than dropping it in silence. *Deliberately not
+mapped* below gives each one's reason. A child of `<geography>` or `<sitedata>` that records
+nothing — no text and no attribute anywhere beneath it — says nothing and is not reported.
+
+divelogs.de produces the nameless site: one it holds only a locality for exports as
+`<name/>` with a `<location>`. Promoting the locality into the name would be inventing one,
+so the dive arrives without a site instead — and every reference to that site goes with it.
+
+Every site in a divelogs.de export also carries an exact `0.000000` / `0.000000` pair,
+which is the file that taught `converting.md`'s rule that such a pair is not a position.
+
+### Contacts — `/uddf/divesite/divebase`, `/uddf/business/shop`, and a trip part's own
+
+§6.18 is one record where UDDF has five shapes, and four of them read into `contacts[]`, each
+with the role its slot implies:
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `divesite/divebase` | a contact with `roles: ["dive_center"]` |
+| `business/shop` | a contact with `roles: ["shop"]` — `<business>` is only their container |
+| `trippart/accomodation` | a contact with `roles: ["accommodation"]` — *Trips* below |
+| `trippart/operator` | a contact with `roles: ["liveaboard"]` — *Trips* below |
+| `name` | `contacts[].name` — REQUIRED, so a shape whose `<name>` is empty is no contact: it is reported, and every link to it goes with it |
+| `address/street`, `city`, `postcode`, `province`, `country` | `contacts[].address.street`, `.city`, `.postcode`, `.region`, `.country` |
+| `contact/phone`, else `contact/mobilephone` | `contacts[].phone` — the first `<phone>`, or the first `<mobilephone>` where there is none |
+| `contact/email` | `contacts[].email` — the first |
+| `contact/homepage` | `contacts[].website` — the first |
+| `notes/para` | `contacts[].notes`, paragraphs joined with blank lines |
+| `@id` | `contacts[].uuid`, under the one kind `contact` whichever slot it came from |
+| a dive's `informationbeforedive/link/@ref` naming a base or a shop | `dives[].contact_uuid` — *Dives* below |
+
+The fifth shape, `<vessel>`, is a boat rather than an organisation and reads into nothing
+(*Deliberately not mapped*). Nothing in UDDF joins a course, a certification or a service to
+a contact, so a reader never fills their `contact_uuid`: `<certification><organization>` is
+the agency, as text, and not the school.
+
+**A contact's `position` has no UDDF source.** None of the four shapes carries a
+`<geography>`, and `addressType` holds no coordinates, so nothing in a file places a base, a
+shop, an accommodation or an operator on a map. A `<trippart>`'s own `<geography>` is where
+the part was, which is the part's `location` (*Trips* below) and not the place it stayed at,
+so it is never read as its accommodation's position.
+
+**`contacts[]` lists the bases in file order, then the shops, then the contacts the trip parts
+add in part order, then those the kit list's purchases add**, and a contact's `roles` come in
+the order §6.18's table gives them. Neither order is a fact about the file — `roles` is a
+set, and a reader may not depend on a collection's order (§4) — which is why both are fixed
+here: two readers differing only in an order the document means nothing by would fail each
+other's pairs.
+
+**A name-only `<divebase>` nothing points at is skipped**, and reported. Subsurface writes
+`<divebase id="allbase"><name>Subsurface Divebase</name></divebase>` into every UDDF export,
+beside a comment that Subsurface does not track the concept, and read as a contact it would
+give every Subsurface logbook a dive center nobody dived with. The test is on shape rather
+than on that string: a base is skipped when no dive and no `<trippart>` links it, no
+`<accomodation>` or `<operator>` in the file carries its name, and it carries no `<address>`,
+`<contact>` or `<notes>`. A base with any of those is kept whatever links it, and a linked
+one whatever it carries — which is what brings back the name-only base
+[`uddf-writing.md`](uddf-writing.md) writes for a contact a part stays at, wherever it gives
+the part a copy.
+
+**Every string meets its member's bound.** A `<name>` or an address part past its bound is
+cut to it and reported, as a site's name is; a phone past 32 characters, an email past 255
+or a homepage past 512 is dropped and reported instead, a number or an address with its end
+cut off being a wrong one.
+
+**`<email>` and `<homepage>` are checked, not merely capped.** `<email>` takes the owner's
+guard (*Diver* above): `n/a`, a dash or a person's name is no email, and reported. A
+`<homepage>` has to be an absolute URI with its scheme, which is what §6.18's `website` means
+and what an importer can open: `xs:anyURI` admits a bare `www.example.com`, and one like that
+is dropped and reported rather than given a scheme the file never stated. A second `<email>`
+or `<homepage>`, and every phone but the one read, is reported as well.
+
+**An `<address>` with no `<country>` is dropped**, and reported. `addressType` requires the
+element and §6.19 makes it the one member an address cannot omit, so the rest of such an
+address has nowhere valid to go — and an `address` without its anchor would fail the
+converter's own output validation and take the whole file with it.
+
+**A `<purchase>`'s own `<shop>` is read as a contact** where no contact read before it has its
+name, by the inline rule under *Trips* below, on a piece that is itself read (*Gear* below);
+the purchase itself — a piece of kit's price and date, and the link to where it was bought —
+has no member and is reported.
+
+### People — `/uddf/diver/buddy`, and a dive base's `<guide>`
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `personal/firstname` + `middlename` + `lastname` | `people[].name`, joined with single spaces, an empty one skipped — REQUIRED, so a buddy with no name at all is no person: it is reported, and every link to it goes with it |
+| `contact/email` | `people[].email` — the first |
+| `contact/phone`, else `contact/mobilephone` | `people[].phone` — the first `<phone>`, or the first `<mobilephone>` where there is none |
+| `notes/para` | `people[].notes`, paragraphs joined with blank lines |
+| `@id` | `people[].uuid`, under the kind `person` |
+| a dive's `informationbeforedive/link/@ref` naming a buddy | a reference in `dives[].people`, with the role `buddy` — or `student`, where the buddy carries `<student/>` |
+| a dive's `informationbeforedive/link/@ref` naming a `divebase/guide` | a reference to the buddy the guide links, with the role `guide` |
+
+`people[]` lists the buddies in file order, and a dive's `people` its links in the order the
+dive gives them.
+
+**A buddy a dive links directly is that dive's buddy.** That is UDDF's own reading — its
+documentation of `<guide>` says a dive linking a buddy directly means the person is simply a
+buddy — and it is what Subsurface's UDDF export means by one: it writes a `<buddy>` per name
+in a dive's buddy field and links each from the dive. A buddy carrying `<student/>` is the
+owner's student, so a dive linking it directly references it as `student` instead.
+
+**A `<guide>` is a buddy leading dives for a dive base.** `guideType` is an id and one
+`<link>`, to a buddy, and a dive may link the guide's id rather than the buddy's: that is a
+reference to the buddy with the role `guide`, which wins over `student` as it wins over
+`buddy`. The guide names a person and not an operator, so the dive's `contact_uuid` comes from
+its own link to the base, where it has one, and never from the guide's.
+
+**A dive names a person once** (§3). A dive linking one buddy twice — directly and through a
+guide, or directly twice — keeps one reference, at the first link's position, with the role
+`guide` where either link carried it, and the other link is reported.
+
+**`<owner>` stays the diver.** UDDF's documentation says an owner's id lets an imported owner
+be managed as a buddy, but whose logbook is being imported into whose is the importing
+application's to decide, so the owner is read as *Diver* above says and never as a person.
+
+**Everything else a buddy carries is reported rather than dropped in silence**, the rule a
+contact's shape keeps: `<address>`, `<equipment>`, `<medical>`, `<education>`,
+`<divepermissions>` and `<diveinsurances>`, `<personal>`'s children beyond the three names,
+and, in its `<contact>`, every `<email>` and phone but the ones read, a `<homepage>`, a
+`<fax>` and a `<language>`. §6.20 carries a name, an email, a phone and notes, and names what
+it leaves out under *Deferred*. A buddy's `<equipment>` in particular is somebody else's kit,
+and never a gear item (*Gear* below reads only the owner's).
+
+**Every string meets its member's bound**, as a contact's does: a name past 255 characters is
+cut to it and reported, and a phone past 32 or an email past 255 is dropped and reported
+instead. `<email>` takes the owner's guard (*Diver* above).
+
+### Trips — `/uddf/divetrip/trip`
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `name` | `trips[].name` |
+| `trippart` | `trips[].parts[]`, in file order |
+| `trippart/geography/location` | `trips[].parts[].location.name` |
+| `trippart/name` | `trips[].parts[].location.name` where the part has no `<geography><location>` with text; where it has one, a `<name>` that differs is reported |
+| `trippart/geography/latitude` + `longitude` | `trips[].parts[].location.position` |
+| `trippart/dateoftrip/@startdate` | `trips[].parts[].starts_on` |
+| `trippart/dateoftrip/@enddate` | `trips[].parts[].ends_on` |
+| `trippart/notes/para` | `trips[].notes`, every part's joined |
+| `trippart/accomodation` | `trips[].parts[].accommodation_uuid`, and a contact — *Contacts* above |
+| `trippart/operator` + `vessel` | `trips[].parts[].accommodation_uuid`, and a contact named for the operator |
+| dive's `informationbeforedive/tripmembership/@ref` | `dives[].trip_uuid` |
+
+**`<geography><location>` is the place's name on both hosts.** A `<site>`'s `<name>` is the
+site's own, which leaves `<location>` as the only slot the locality has at all, and
+`<geography>`'s coordinates are the site's pin — so a site read from UDDF never arrives with
+a locality position or a box. A `<trippart>` has two text slots where a location has one, and
+writers spend its `<name>` on a label for the stretch as often as on a place — "Red Sea
+Liveaboard" beside a `<location>` of "Sha'ab Ali, Egypt". §6.9a gives a part no name of its
+own, so the label has nowhere to go: the `<location>` is the place, and a `<name>` that
+differs from it is reported. Where the `<location>` is blank — `geographyType` makes it a bare
+string, so nothing stops one — it names nothing, and the `<name>` stands in.
+
+**A `<trippart>` is a part**, which is as close to an identity as this table gets: both
+formats model a trip as a sequence of stretches each carrying its own dates and its own
+place, so the dates stay where the file put them instead of being collapsed into a span.
+`tripType` records no dates of its own and §6.8 records none either — a trip's span is the
+span of its parts in both, and a trip whose parts carry none has no span in either.
+
+A `<trippart>` with text in either slot becomes a part with a location, so a nameless part
+whose `<location>` has text has a place like any other. One with neither becomes a part with
+dates and no location, which §6.9a allows and which is what a `<trippart>` carrying only a
+`<dateoftrip>` says. A `<geography>` on such a part, its `<location>` blank, has no `name` to
+hang its coordinates off and is dropped and reported (§6.9 makes `name` REQUIRED of a
+location) — the part survives with its dates, where before the whole element did nothing but
+widen the trip's span. **Where it carries no dates either, the rule below reaches the same
+element**: nothing comes back at all, and the finding says that rather than saying the part
+survived.
+
+**A `<trippart>` with no text in either slot, no date and no place to stay produces no part
+at all**, and that is what closes the round trip in the other direction: `tripType` requires at
+least one `<trippart>`, so [`uddf-writing.md`](uddf-writing.md) emits a nameless empty one
+for a trip with no parts, and a trip with no parts is what comes back.
+
+**Where the diver slept is the part's `<accomodation>`**, or its `<operator>` with a
+`<vessel>`: `trippartType` holds one or the other, never both, and the second is UDDF's
+liveaboard, the boat being the bed. Both read into a contact the part's `accommodation_uuid`
+names. The element is read under both spellings — `<accomodation>`, which the XSD declares,
+and `<accommodation>`, which the documentation writes.
+
+**An inline shape is folded by name into the contact it names.** `<accomodation>` and
+`<operator>` sit inside the part rather than being linked from it, so one hotel stayed at
+twice is two elements, and a resort its `<divebase>` already describes is a third. Each is
+matched on its `<name>`, trimmed and case-insensitively, against every contact read before it
+— the bases, the shops and earlier parts' shapes — and a match adds the role its slot implies
+to that contact rather than making another. Where the contact lacks a member the shape states,
+it takes it; where both state one and they differ, the contact's stands and the shape's is
+reported. Two parts at "Grandma's house" are one contact, and a base that is also where the
+diver slept is one contact with both roles; two different places of one name are one contact
+too, a file giving a reader nothing else to tell them apart by. A shape that matches nothing
+is a contact of its own: an `<accomodation>` under its `@id`, like any record, and an
+`<operator>`, which carries none (`operatorType` extends `simpleNamedType`), under the
+positional identity `converting.md` gives a record without one, its position being its
+`<trippart>`'s among every `<trippart>` in the file, counted from 0.
+
+**In an archive, a shape can fold into a contact another member carries.** A record two
+members define under one id is written by one of them (`converting.md`, *A container is one
+logbook*), and the others resolve their references to it. A repeated `<trip>`'s parts are
+not read, so their stays mint no contacts — an `<operator>` has no id, and would be a second
+contact for one boat. A repeated `<divebase>` or `<shop>` is read with its findings held, the
+carrying member reporting them, and that copy is what a shape in the same file folds into and
+is compared against. Whatever the fold would add to it — its slot's role, or a member the
+copy lacks — is reported as not carried, the contact's row being the other member's.
+
+**The operator is the contact, and the vessel is not read.** Its `<name>`, `<address>`,
+`<contact>` and `<notes>` are the contact's, with `roles: ["liveaboard"]`; the `<vessel>` —
+its name, and everything about the boat — is dropped and reported.
+
+**A part's `<link>` to a base is not a member.** It says the base ran the diver's dives
+during the part, and §6.9a records where the diver stayed and not who they dived with, which
+is each dive's `people` and `contact_uuid`. The base itself is read, the link being what
+keeps a name-only one from being skipped as a placeholder, and the link is reported dropped.
+
+UDDF also allows the opposite direction — `trippart/relateddives/link` pointing from the
+trip at its dives. It is neither read nor reported, no writer in the corpus emitting it.
+
+**The rest of what a trip or a part records is dropped without a finding.** A trip's
+`<aliasname>` and `<rating>`, and a part's `<aliasname>`, `<rating>`, `<priceperdive>` and
+`<pricedivepackage>`, have no member in §6.8 or §6.9a and are not reported. A contact's shape
+is the other way round, every child it does not read being reported by its tag (*Contacts*
+above); of a part's, only `@type`, the `<vessel>` and the `<link>` are.
+
+### Gear — `/uddf/diver/owner/equipment`
+
+The element's own name is the type. `name` is REQUIRED by §6.12, so a nameless piece is
+dropped; `manufacturer/name` becomes `brand`, `serialnumber` becomes `serial` and
+`notes/para` becomes `notes`. A dive's
+`informationbeforedive/equipmentused/link/@ref` becomes `dives[].gear_uuids`.
+
+**A `<tank>` carries its vessel's facts** (§6.12), two children more than any other piece:
+`<tankmaterial>` becomes `material`, its three values being UDDF's own spellings, and
+`<tankvolume>` becomes `volume`, in cubic metres or litres as a `<tankdata>`'s is
+(*`<tankvolume>`* below). UDDF has no element for a working pressure, so §6.12's
+`working_pressure` has no source here. A dive's cylinder names its vessel by a `<link>` on
+its `<tankdata>` (*Cylinders* below).
+
+**A piece that is not read takes its `<purchase>` with it.** A nameless piece, or a second
+one using an id another piece in the file already has, is dropped with the one finding that
+says so, and its `<purchase>` goes with it: the purchase gets no finding of its own, and its
+`<shop>` is no contact. A `<camera>` or `<videocamera>` as the 3.2.2 XSD declares it is
+always nameless — `cameraType` and `videocameraType` extend `ID_TYPE` rather than
+`namedType`, and hold only named parts, a `<body>`, a `<lens>` and the rest, which are not
+read either. A piece another member of an archive carries is not written again, and its
+purchase is that member's to read (*Trips* above).
+
+`<serialnumber>` is on `equipmentPieceType`, so it is read for **every** gear type that
+carries one and not only for a computer — which is what §6.12's own member says. On a
+computer it is the member that lets a writer recognise the kit item and a recording's
+device (§6.4b) as one machine without comparing names, and
+[`uddf-writing.md`](uddf-writing.md) is where that test is written down. `<model>` is not
+read: §6.12 has no member for it, and on a computer the model is the *device's*
+(§6.4b), read from the same element below. Nor are `<serviceinterval>` and
+`<nextservicedate>`, which every piece may carry: the first is whole days between services
+and the second a date, and neither is a schedule with history — no start, no baseline, no
+service performed — which is what §6.14 and §6.15 are.
+
+| UDDF element | `gear.type` |
+| --- | --- |
+| `mask`, `fins`, `gloves`, `boots`, `compass`, `knife`, `light`, `camera`, `regulator`, `rebreather`, `scooter` | the same value |
+| `buoyancycontroldevice` | `bcd` |
+| `divecomputer` | `computer` |
+| `tank` | `cylinder` |
+| `videocamera` | `camera` |
+| `suit` | `drysuit` when `<suittype>` says so, else `wetsuit` |
+| `variouspieces`, `lead`, `compressor`, `watch` | `other` |
+
+The last row is translation rather than invention: `<variouspieces>` is UDDF's own
+catch-all, a weight belt's quantity is the dive's `weight` (§6.2), a watch is a computer or
+jewellery, and a compressor is not kit carried on a dive — so none of the three earns a
+value of its own. UDDF has no element for a `transmitter` or a `backplate`, which are
+written as `<variouspieces>` ([`uddf-writing.md`](uddf-writing.md)) and so come back as
+`other`; a `wing` is written as the buoyancy control device it is, and so comes back as
+`bcd`. `<equipmentconfiguration>` is skipped — it describes how the pieces are rigged
+together, not a piece.
+
+**`<divecomputer>` is one element read two ways.** It is a piece of kit the diver owns, and
+it is the hardware that recorded a dive, and UDDF has one element for both — alone among
+the formats here. So the reader does both: it keeps minting the gear item of type
+`computer`, exactly as the table above says, **and** reads a recording's device (§6.4b) from
+the same element for every dive whose `<equipmentused><link>` names it. The two are
+different records of one object rather than one record written twice: the gear item is a
+thing in a kit list and the device is what a recording says about the hardware. They
+overlap on this format more than on any other — a `<name>` and a `<serialnumber>` each land
+on both — and that overlap is the point, being exactly what lets a writer recognise the two
+as one computer again. A dive that links no computer gets no device, which is most files
+— see *Device* below.
+
+### Device — the linked `<divecomputer>` elements
+
+| UDDF | DiveJSON (§6.4b) |
+| --- | --- |
+| `divecomputer/manufacturer/name` | `brand` |
+| `divecomputer/model` | `model` |
+| `divecomputer/serialnumber` | `serial` |
+| `divecomputer/name` | `name` |
+| `informationbeforedive/internaldivenumber` | `dive_number`, the **device's** counter |
+
+**`<divecomputer><name>` is read twice, into two members of two records, and that is not a
+duplication.** It is the only string in this format that names the computer at all, and the
+two members it lands in mean different things: §6.12's `name` is the diver's label for a
+thing in their kit list, and §6.4b's `name` is what the device calls itself. UDDF has one
+element for both because it has one element for the whole computer. Reading it only as the
+gear item's name would leave a computer stated at this format's usual width with a device
+that has no string naming it — `opendiving.uddf` below carries a `<name>` and no `<model>`,
+where `shearwater-cloud.uddf`'s element states both — and reading
+it into `model` instead would put `Ocean` where the same dive's FIT export puts
+`Suunto Ocean`, conflating two members §6.4b defines separately.
+
+A `<name>` of pure whitespace is no name (*What UDDF's leniencies look like* above), so it
+yields neither, and an **empty** `<name>` is the same answer — which is what makes a written
+file round-trip: [`uddf-writing.md`](uddf-writing.md) emits an empty one for a device that
+has no name, `<name>` being mandatory on the element.
+
+`<internaldivenumber>` is on the dive rather than on the element, which is where UDDF puts
+it, and it is why a device read from a shared element still differs between two dives that
+link it. It is the counter a dive's `number` is explicitly not — `<divenumber>` is the
+diver's and stays there.
+
+**A device whose every member is absent is not written at all** (§6.4b). With `<name>` on
+the list above, that now takes an element carrying **nothing** this reader maps — no
+`<name>`, no `<manufacturer>`, no `<model>`, no `<serialnumber>` — on a dive that also
+states no `<internaldivenumber>` the element is entitled to, which the multi-computer rule
+below makes the dive's first link alone.
+An element carrying only a `<name>` yields both records: a gear item named by it and a
+device named by it.
+
+`fixtures/uddf/opendiving.uddf`, the reference writer's own export, is the shape to expect.
+It has one `<divecomputer>` with a `<name>` and a `<manufacturer><name>` and no `<model>`,
+`<serialnumber>` or `<internaldivenumber>` — so its dive's recording carries a device of
+exactly two members, `{"brand": "Suunto", "name": "Ocean"}`, and the gear item carries the
+same name beside its own uuid and notes. UDDF records what the diver owns far more often
+than it records what recorded the dive, and on this format the two overlap almost entirely:
+a device read here is usually the kit item read again, which is why the fold going the other
+way ([`uddf-writing.md`](uddf-writing.md)) matters as much as it does.
+
+UDDF has no equipment element for a firmware version, so §6.4b's `firmware` has no source
+here.
+
+**A dive may link more than one computer, and each linked `<divecomputer>` is a recording**
+(§6.4a), in the order the dive's `<equipmentused>` links them. That is `converting.md`'s
+general rule rather than anything of UDDF's, and it is the same shape `.ssrf` reaches from
+its own repeated element — the carve-out included, and in `converting.md`'s own words: a
+link that yields **neither a device nor a profile** yields no recording, §6.4a forbidding
+one that carries nothing.
+
+**The first link is where the dive's own once-per-dive facts land**, all three of them,
+because UDDF states each once per **dive** and never once per computer:
+
+- **Its `<samples>` become that first recording's profile.** A dive has one `<samples>`
+  element, so there is nothing to give the others and nothing to divide, and every recording
+  after the first is device-only. That profile, with the surface pressure below, is the
+  only thing that carries a link past the carve-out without a device, and it reaches exactly
+  one link — so **where the dive has a profile**, the first link is a recording whether or
+  not its element names a device, exactly as a dive linking no computer at all is one
+  recording made of its samples alone, and the carve-out bites only on the *later* links
+  whose elements name none. **Where the dive has neither a profile nor a surface pressure** —
+  an absent `<samples>`, or samples `converting.md` found wholly unusable — there is nothing
+  to protect any link, so every one of them is judged on its device alone, the first
+  included, and a dive whose elements all name none has no recordings at all.
+- **Its `<surfacepressure>` goes to that first link's recording**, a readout being enough to
+  make one (§6.4a) the way a profile is — *Dives* below.
+- **Its `<internaldivenumber>` joins that first link's device**, and only that one's. It is a
+  child of the dive (above), so a dive linking two computers has one counter and no way to
+  say whose it is; giving it to the first is the only reading that does not put one machine's
+  count on another's device. Confining it there is also what keeps the rule above from
+  circling: every **later** link's device is made of that element's own four members and
+  nothing the dive supplies, so whether it yields a device never depends on which link came
+  first — while the first link's device may still be a counter and nothing else, which is why
+  the emptiness test above names the dive's `<internaldivenumber>` beside the element's own.
+
+**No file in this corpus links two**, so this has no pair of its own and is written down
+here rather than discovered by the first reader to meet one.
+
+**It is not a round trip, and the writing direction says so first.** A document whose dive
+carries more than one recording cannot be written whole — one `<samples>` per dive — so
+[`uddf-writing.md`](uddf-writing.md) writes the primary's samples and **reports every other
+recording as dropped**, keeping its device in `<equipment>` so that what was worn is not
+lost with what it sampled. Nothing here recovers a dropped recording, and **the order does
+not survive either**: a dive's links come from its `gear_uuids`, in the diver's own order,
+with a link appended after them for every device that took an element of its own, so which
+computer reads back first is a fact about the kit list rather than about the recordings. A
+reader must not take the first link as evidence that its computer was the document's
+primary — there is no such evidence in the file. This rule exists to read somebody else's
+two-computer file; on output from the writer above it returns what that writer's report
+already said would come back.
+
+### Dives — `/uddf/profiledata/repetitiongroup/dive`
+
+Repetition groups are walked *through*: a group is a surface interval's worth of dives and
+carries nothing this format records.
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `informationbeforedive/datetime` | `started_at` |
+| `informationbeforedive/divenumber` | `number` |
+| `informationbeforedive/link/@ref` | `site_uuids`, in source order, the first being the primary site |
+| `informationbeforedive/link/@ref` naming a `<divebase>` or a `<shop>` | `contact_uuid` |
+| `informationbeforedive/link/@ref` naming a `<buddy>` or a `<guide>` | `people` — *People* above |
+| `informationbeforedive/altitude` | `altitude` |
+| `informationbeforedive/airtemperature` | `air_temperature` |
+| `informationbeforedive/apparatus` | `type` — see below |
+| `informationbeforedive/platform` | `entry_type` — see below |
+| `informationbeforedive/surfacepressure` | the primary recording's `surface_pressure` — see below |
+| `informationbeforedive/equipmentused/leadquantity` | `weight` |
+| `informationafterdive/diveduration` | `submerged_time` |
+| `informationafterdive/greatestdepth` | `max_depth` |
+| `informationafterdive/averagedepth` | `avg_depth` |
+| `informationafterdive/lowesttemperature` | `bottom_temperature` |
+| `informationafterdive/visibility` | `visibility` |
+| `informationafterdive/current` | `current` — see below |
+| `informationafterdive/rating/ratingvalue` | `rating` — see below |
+| `informationafterdive/notes/para` | `notes` |
+
+**Four of those rows read a closed vocabulary or a scale, and on two of them §6.2 has fewer
+steps than UDDF.** `<ratingvalue>` counts 1 to 10 and §6.2's `rating` 1 to 5, so a value reads as
+half of itself rounded up — ⌈n/2⌉, a `7` reading as `4` — reported `resolved` with both
+scales named: the value written is the source's own on fewer steps. `<current>` has six
+values and §6.2's five:
+
+| `<current>` | `current` |
+| --- | --- |
+| `no-current` | `none` |
+| `very-mild-current`, `mild-current` | `light` |
+| `moderate-current` | `moderate` |
+| `hard-current` | `strong` |
+| `very-hard-current` | `extreme` |
+
+`very-mild-current` shares `light` with `mild-current`, and that read is reported `resolved`,
+the six-step scale having lost a step on the way in; every other row is one value to one and
+carries no finding.
+
+| `<apparatus>` | `type` |
+| --- | --- |
+| `open-scuba` | `open_circuit` |
+| `rebreather` | `closed_circuit`, reported `resolved` |
+| `surface-supplied` | `surface_supplied` |
+| `chamber`, `experimental` | not read, reported `dropped` |
+
+UDDF's `rebreather` names closed and semi-closed circuits alike, so reading it as
+`closed_circuit` settles a meaning the source left open, which is what `resolved` is for.
+Neither `chamber` nor `experimental` is a value §6.2's vocabulary has.
+
+| `<platform>` | `entry_type` |
+| --- | --- |
+| `beach-shore`, `landside` | `shore` |
+| `pier` | `pier` |
+| `small-boat`, `charter-boat`, `live-aboard`, `barge` | `boat` |
+| `hyperbaric-facility`, `other` | not read, reported `dropped` |
+
+The folds into `shore` and `boat` are silent, as every vocabulary fold this reader makes is:
+the value read is the one the source stated, in §6.2's broader word for it, and no scale was
+decided.
+
+`<datetime>` is the source of the UTC offset `converting.md` requires be carried through
+untouched; a dive with no `<datetime>` at all is dropped, since §6.2 makes `started_at`
+REQUIRED.
+
+Two truncations are forgiven, both real writer output rather than hypotheticals:
+`2002-06-18T` and a bare `2002-06-18` are read as a **date-only start** (§5.2), with the time
+of day reported absent — `converting.md`'s rule, and not midnight, which neither string
+states. Subsurface emits the first for a midnight dive, its stylesheet building the string
+with an unguarded concatenation; a dive that really began at midnight therefore comes back as
+its date, which is that writer's loss rather than a reading this reader could recover.
+Dropping the dive over either would lose a dive to a writer's typo. A bare date carrying an
+offset, `2002-06-18+02:00`, reads as the same date-only start, with the offset reported
+dropped: an offset places an instant, and a day with no time of day has none to place.
+
+**`<surfacepressure>` is the dive's element and a recording's figure.** §6.4a puts the
+surface pressure a computer used on that computer's recording, and UDDF states one per dive,
+so it goes where `converting.md` sends a dive-level readout: onto the primary recording — the
+first link's, *Device* above — reported `resolved` where the dive has more than one, and onto
+a recording of its own where the dive yields none. No file in this corpus links two
+computers, so the `resolved` case has no pair.
+
+Zero is read two different ways here, which is `converting.md`'s zero rule meeting two
+members with different constraints. A `<greatestdepth>` or `<averagedepth>` of `0` is **not
+recorded**: UDDF makes `<greatestdepth>` mandatory where DiveJSON leaves `max_depth`
+optional, so a writer with nothing to say has to put a zero there. A `<leadquantity>` of `0`
+**is recorded**, since §6.2 makes `weight: 0` a diver's "no lead". *Known trap:* Subsurface
+writes `<leadquantity>0</leadquantity>` for a logbook it holds no weights for, so a
+converted Subsurface file says "no lead" where the diver's original log said 6 kg. That is a
+loss on Subsurface's side, and reading it any other way would discard a genuine "no lead"
+from every other writer.
+
+A `<link>` under `informationbeforedive` addresses a site, a `<decomodel>` child (*The
+decompression model* below), a contact — a `<divebase>` or a `<shop>`, which becomes the
+dive's `contact_uuid` — or a person: a `<buddy>`, or a base's `<guide>`, each a reference in
+the dive's `people` (*People* above). UDDF's prose names buddies and sites as this link's
+targets, while `informationbeforediveType`'s `<link>` is a bare `xs:IDREF` that may name any
+id, so a reader resolving a base or a shop loses nothing and a writer linking one stays
+schema-valid. A dive linking two contacts keeps the first and reports the rest, §6.2
+carrying one. A link that resolves to anything else is dropped with a note, and one that
+resolves to nothing at all is reported as a source defect.
+
+### Cylinders — `dive/tankdata`
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `tankvolume` | `cylinders[].volume` |
+| `link/@ref` → a piece under `<equipment>` | `cylinders[].gear_uuid` |
+| `tankpressurebegin` | `cylinders[].start_pressure` |
+| `tankpressureend` | `cylinders[].end_pressure` |
+| `link/@ref` → `gasdefinitions/mix/o2` | `cylinders[].oxygen` |
+| `link/@ref` → `gasdefinitions/mix/he` | `cylinders[].helium` |
+| `link/@ref` → `gasdefinitions/mix/maximumpo2` | `cylinders[].ppo2_limit` |
+
+`<gasdefinitions>` is not a collection of its own: DiveJSON carries the blend on the
+cylinder that held it, so a mix nothing links to travels nowhere.
+
+**A `<tankdata>`'s links are read whole**, in whatever order they come, and told apart by
+what each resolves to: one against the mixes and one against the gear ids `<equipment>`
+defines, the gear link becoming the cylinder's `gear_uuid` (§6.3) — a `<tank>`, ordinarily,
+though a vessel a writer had no `<tank>` for comes back as whatever its element reads as.
+The mix link is the one that ties the cylinder to its pressure channel, whichever comes
+first. **A cylinder holds one gas and is one vessel, and a vessel is one cylinder per dive**
+(§3, rule 7): a second mix link or a second gear link on one `<tankdata>` is dropped with a
+note, and a second `<tankdata>` of one dive linking a piece already linked keeps its gas and
+loses the link with a note. **A link that resolves to neither** — to an id the file gives
+something else, a site say, or to one it defines nowhere — is dropped with a note, unless the
+`<tankdata>` has no mix link at all. Then its first such link stays its gas link, read as
+it always was — the cylinder's mix noted as one `<gasdefinitions>` does not define — so a
+`<tankpressure ref>` naming the same id still ties its channel to this cylinder.
+
+**A linked `<tank>`'s volume stands in for a `<tankdata>` that gives none.** UDDF's own
+rule is that a volume the `<tank>` gives need not be repeated in a `<tankdata>` linking it,
+and a `<tankdata>` that does give one overrides it, so a file built the way UDDF asks
+carries the figure once, on the vessel; the reader takes it from there, with no finding,
+because that is where the source put it. It does so for a `<tankdata>` whose link to that
+`<tank>` was dropped as a repeat too: the link is the source's statement of the cylinder's
+size whether or not the cylinder can keep it as its vessel.
+
+`converting.md`'s vessel-less cylinder is UDDF's `<tankdata>` with a gas link and no
+`<tankvolume>` — and no link to a `<tank>` that gives one; the absent start pressure it
+describes is `<tankpressurebegin>` of `0`. And
+UDDF records no cylinder numbering at all, which is why the converter has none to carry and
+numbers only where a pressure channel or a gas switch needs it.
+
+### Profile — `dive/samples/waypoint`
+
+UDDF puts every reading taken at one instant inside one `<waypoint>`; DiveJSON splits them
+into channels sampled on their own axes, and `converting.md`'s no-padding rule is why a
+converted Subsurface dive keeps 431 depth samples beside 29 temperatures rather than
+inventing 402 readings.
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `divetime` | the `times` entry for every channel this waypoint feeds |
+| `depth` | `profile.depth` |
+| `temperature` | `profile.temperature` |
+| `tankpressure` (`@ref` → a mix → a cylinder) | `profile.pressures[]` |
+| `setmarker` | an event |
+| `switchmix` (`@ref` → a mix → a cylinder) | a `gas_switch` event |
+| `nodecotime` | `profile.ndl` |
+| `calculatedpo2` | `profile.ppo2` |
+| `cns` | `profile.cns` |
+| `gradientfactor` | `profile.gradient_factor` |
+| `divemode` `@type` | the recording's `mode`, from the first waypoint that states one |
+
+- `<divetime>` is optional in the schema and is the only thing that can place a reading, so
+  a waypoint without one is the timeless sample `converting.md` drops and reports.
+- `<divetime>` is `xs:float` seconds while §6.5's `times` are whole milliseconds, so each is
+  multiplied by a thousand and rounded, a fraction the file states is kept, and two waypoints
+  that round to one millisecond are `converting.md`'s collision.
+  `fixtures/uddf/legacy-writer.uddf` writes a `30.4` beside a `30`: one second, two
+  milliseconds, so both readings are kept.
+- A `<setmarker>` whose text is exactly `deep_stop`, `safety_stop` or `bookmark` becomes
+  that event type; anything else becomes an event with **no `type`** and the text as its
+  `label`, which §6.6 makes the spelling of an unclassified event. `<setmarker>` is a bare
+  string with no type beside it, so this is the only thing a round trip through UDDF has to
+  go on.
+- **`<divemode>` states the recording's mode.** `divemodeType` enumerates five values and
+  DiveJSON's `mode` five, and they are not the same five:
+
+  | `<divemode @type>` | `mode` |
+  | --- | --- |
+  | `opencircuit` | `open_circuit` |
+  | `closedcircuit` | `closed_circuit` |
+  | `semiclosedcircuit` | `semi_closed` |
+  | `apnoe` | `freedive` |
+  | `apnea` | `freedive` |
+
+  **Two spellings of one mode**, because UDDF has two: `apnoe` is the original and `apnea`
+  was added beside it in 2017 as the English word, both are current in 3.2.x, and a reader
+  that knew only one would drop every freedive from whichever half of the installed base
+  wrote the other. **`gauge` is the value UDDF does not have** — §6.4a's fifth mode has no
+  counterpart here at all, which is a fact about UDDF rather than about this reader, and
+  `uddf-writing.md` is where it costs something. A `@type` outside the table, or a
+  `<divemode>` with no `@type` at all, leaves the recording's `mode` absent and is reported.
+  **§6.4a is the whole of the reason**: it forbids assuming open circuit, so an absence stays
+  an absence. The schema does not back it up — this is one of the places the documentation
+  contradicts it. The documentation stops at 3.2.1 and calls `@type` compulsory there; the
+  3.2.2 XSD declares the attribute with no `use` at all, which defaults to `optional`, so a
+  bare `<divemode/>` validates. The one `use="required"` anywhere near `divemodeType` is on
+  `samplesType`'s `@startdivemode`, inside a block commented out in 2012. A reader that took
+  the documentation's word for it would treat this case as impossible and meet it anyway.
+- **Only a change of value is an event.** The
+  first waypoint that carries one gives the recording its `mode`; a later waypoint stating a
+  *different* value is reported `dropped`, because the only place §6.6 could carry a switch
+  is an event and an event with no type needs a label the file does not supply — writing one
+  would be inventing the device's wording (§5.4). A later waypoint that simply stops stating
+  the mode is not a change: an absence is not a claim. No file in hand changes mode
+  mid-dive; `fixtures/uddf/shearwater-cloud.uddf` states `opencircuit` on its first eight
+  waypoints and nothing on its last four.
+- **A `<nodecotime>` of 5940 is a reading**, not a missing one: 99 minutes is the Shearwater
+  display maximum and it means *at least this*. `converting.md`'s display-cap rule is what
+  carries it through.
+- **Two cylinders on one blend link the same `<mix>`**, so a `@ref` resolves to a *list* of
+  cylinders and repeated references on one waypoint take them in order. Collapsing them
+  would put two readings on one instant, which §6.5 forbids, and would say the diver carried
+  one bottle. A `<tankpressure>` with no `@ref` at all — which the documentation permits for
+  a linked double measured at one pressure — is taken as the dive's cylinder when there is
+  exactly one, and dropped when there is a choice to get wrong.
+
+### The decompression model — `<decomodel>`
+
+`<decomodel>` is a top-level container of `<buehlmann>`, `<vpm>` and `<rgbm>`, each with an
+`@id`, and a dive reaches its own through a `<link>` under `<informationbeforedive>`. That
+link is how the model becomes *this dive's* rather than the file's: a logbook holds one
+`<decomodel>` block and many dives, and nothing says every dive ran the same model.
+
+| UDDF | DiveJSON |
+| --- | --- |
+| `<decomodel><buehlmann @id>` a dive links | `recordings[].deco_model.algorithm: "buhlmann"` |
+| `<buehlmann><gradientfactorlow>`, `<gradientfactorhigh>` | `deco_model.gf_low`, `.gf_high` |
+
+- **`<vpm>` and `<rgbm>` are not mapped**, and they are on the not-mapped list below with
+  that reason: no file in hand carries either, and a mapping no pair exercises is one
+  nothing checks. §6.4c's `algorithm` is OPTIONAL, so each arrives in a minor version with
+  the file that first needs it.
+- **A `<link>` that resolves to a `<decomodel>` child is no longer a dangling reference.**
+  Until this mapping existed it fell through to the "not a site this converter carries"
+  note, which is what `fixtures/uddf/shearwater-cloud.uddf`'s `<link ref="zhl16c" />`
+  produced. It resolves now and is reported nowhere.
+- **The `<tablegeneration><calculateprofile><profile><decomodel>` route is not read.** That
+  element names the model a *recalculation* used, which is the application's arithmetic
+  rather than the device's, and §6.4c's object is what the device ran.
+
+Two of this format's unit ambiguities are the deco model's, and both are below under
+*Where UDDF does not hand over the answer*: `<calculatedpo2>`'s bar-or-Pascal, settled on
+the value, and the gradient factors' percent-or-fraction, settled on the generator.
+
+## Generators this reader knows
+
+`converting.md` settles a *meaning* on the writer, not on the value, and this is the table
+that does it: an entry here changes how one generator's files are read and no others'. It is
+the sharpest tool in this document — a wrong entry misreads every file that generator ever
+produced — so it gains a row only against real files, and each row says which.
+
+| `<generator><name>` | what is read differently |
+| --- | --- |
+| `Shearwater Cloud Desktop` | a `Z` on a dive's `<datetime>` means **no offset**; the gradient factors are **whole percent**, not fractions |
+
+**The Shearwater `Z` is the local wall clock, not UTC.** Shearwater Cloud Desktop writes the
+time the diver read off their wrist and suffixes it `Z`, so the instant the file appears to
+state is wrong by the diver's own offset — three hours, for the Red Sea export this rule was
+written against, where a Perdix 3 stamped `15:18:10Z` for the same moment a Suunto beside it
+on the same wrist stamped `15:17:38+03:00`. So under this generator the `Z` is read as
+absent: the value becomes a **local date-time** (§5.2's third state, the wall clock
+with the instant unknown) and the report carries a `resolved` finding — "The application that
+wrote this file marks the local time with a 'Z', the sign for UTC; read as a local time without
+a time zone." It is `resolved` rather than `inferred` because the digits written are the ones
+the source recorded and only their meaning was in doubt, so nothing goes under
+`extensions.divejson.inferred`.
+
+The alternatives are both worse. Trusting the `Z` puts the dive three hours from where it
+happened and can never pair it with the same dive off another computer. Correcting it with
+an offset would be the fabrication §5.2 forbids outright — a wall clock with no offset is a
+state this format has precisely so a converter never has to invent one.
+
+Matching is on the exact `<generator><name>` string, with the manufacturer id
+`Shearwater_Research_Inc` checked beside it: a name alone is a string anything may claim,
+and two agreeing beats one. `<generator><datetime>` is left alone under this rule and every
+other — it is the export instant, a fact about the run rather than logbook data.
+
+**No first-party statement of this exists either way**, which is why the rule is keyed on
+the generator rather than asserted as the format's. What is on record: the owner of the two
+files confirms the wall clock; a third-party reader states in its own source that
+Shearwater's exports carry "a wall-clock reading stored as if it were a UTC epoch";
+Subsurface's import is consistent with it, copying the time part verbatim and ignoring a
+trailing `Z`; and one issue asserts the opposite with no evidence behind it. Three further
+Shearwater Cloud Desktop exports in public repositories carry the same shape. **The rule now
+has a pair**, `fixtures/uddf/shearwater-cloud.uddf` being a reduction of the Perdix 3 export
+quoted above, so what it is held to is a file this repository carries — while the evidence that
+the reading is the right one is still the record above rather than anything in the corpus,
+which is `converting.md`'s rule about a claim resting on a file that is not here.
+
+## Where UDDF does not hand over the answer
+
+Most of what follows is `converting.md`'s ambiguity of *scale*: a value the source did
+record, whose scale the file cannot settle, so a heuristic reads it at the scale it must have
+meant and reports a finding of kind `resolved` when it fires. The generator table above is
+the same kind of finding settled the other way, on the writer rather than on the value — and
+the gradient factors below are the case that has to be settled that way. The first item is
+the opposite shape and no ambiguity at all — a required DiveJSON member with no UDDF source —
+and §6.4 settles it outright, so it guesses nothing and reports nothing.
+
+The heading carries no count on purpose: it had one, and one more ambiguity is exactly the
+sort of thing that arrives without the heading being corrected.
+
+### `profile.duration` has no UDDF source
+
+`<diveduration>` is the dive's *logged* time in the water and maps to `dive.submerged_time`.
+§6.4 makes `profile.duration` REQUIRED and at least the largest sample time in any channel —
+a different quantity, and in practice a larger one: `<diveduration>` is **shorter** than the
+sample span in both real exports on record, 4010 s against 4300 s and 4001 s against 4288 s.
+
+**Take the largest sample time across every channel. Never trim samples to make
+`<diveduration>` fit** — that would delete recorded readings to satisfy a number, which is
+exactly §5.4's violation. DiveJSON's own reference writer produces the same shape, a
+profile spanning 4301 s over a logged `submerged_time` of 4001. §6.4 defines the member as
+the span of the samples themselves, so reading it off them is structural rather than
+derived, and it carries no finding of any kind.
+
+### `<tankvolume>`: cubic metres or litres
+
+The documentation is unambiguous — "not in litres, as UDDF uses SI units!" — and Subsurface
+wrote litres into the field until 2025-09-30. That fix is in no tagged release but is in the
+6.0.x master builds people actually run, so **both spellings are live in the installed
+base**, both are schema-valid, and no validator catches either. A fixture cannot settle it
+because whichever build produced the fixture only demonstrates one of them.
+
+**Heuristic: below 1, cubic metres; at 1 or above, already litres.** A cubic metre of water
+capacity is a thousand-litre cylinder, and a litre-valued `0.012` would be twelve
+millilitres. Bubbletrail's UDDF importer uses the same threshold. Reported as `resolved`
+when the second branch fires.
+
+### `<o2>` and `<he>`: fraction or percent
+
+The documentation calls `<o2>` "a real number less or equal 1.0 in percent", which
+contradicts itself, and writers took both readings: pre-2017 Subsurface wrote `<o2>34</o2>`
+where current writers write `0.34`. Both are schema-valid.
+
+**Heuristic: at or below 1, the documented fraction; above 1, already a percentage.** `1.0`
+is pure oxygen rather than a 1 % mix, because a 1 % mix is not a breathing gas. Reported as
+`resolved` when the second branch fires.
+
+### `<calculatedpo2>`: bar or Pascal
+
+The documentation states Pascal, and Shearwater Cloud Desktop writes `0.399999976` for a
+ppO₂ of 0.4 bar. The two spellings are three orders of magnitude apart and a breathable ppO₂
+lives between about 0.1 and 2 bar, so nothing overlaps.
+
+**Heuristic: at or below 10, bar; above it, Pascal.** Reported as `resolved` when the
+second branch fires. §6.4's `ppo2` is hundredths of a bar, so the first branch multiplies by
+100 and the second divides by 1 000.
+
+### `<gradientfactor>` and the GF pair: percent or fraction, on the generator
+
+`<gradientfactorlow>` and `<gradientfactorhigh>` are documented as fractions with
+`0.0 ≤ GF Low ≤ GF High ≤ 1.0`; the per-waypoint `<gradientfactor>` is documented as "a
+percentage as a real number" with no range at all, its one example `0.8` glossed as 80 %.
+Shearwater Cloud Desktop writes whole percent in all three — `50` and `85` for the pair,
+`0`, `1` and `3` to `17` per waypoint.
+
+**A magnitude test cannot settle the per-waypoint one**, which is what makes this the
+generator table's case rather than a heuristic's. Nearly every value in hand is `0` or `1`,
+and the `<o2>` shape would read a `1` as 100 %: a leading tissue sitting at its M-value on a
+15 m no-decompression dive, which is not what the file says. So the rule is the writer's: a
+generator the table names writes whole percent, read verbatim and reported `resolved`; any
+other is read as the documented fraction and multiplied by 100. Both the pair and the
+per-waypoint channel follow the one rule, because a file that writes one of them in percent
+writes all three that way.
+
+## Deliberately not mapped
+
+| UDDF | why not |
+| --- | --- |
+| `<waypoint><decostop>` | a stop *schedule*, not a ceiling sample: `@duration` is required on it and a ceiling has none, several may appear on one waypoint, and no writer in the corpus emits any. `profile.ceiling` waits for a real file to map from. |
+| `<waypoint><otu>` | §6.4 has a `cns` channel and no OTU one, and no file in hand carries this element. Deriving a recording's `otu_start`/`otu_end` from the last sample would present a derivation as recorded data, which §5.7 forbids. |
+| `<waypoint><measuredpo2>` | per cell by construction: its `@ref` to an O₂ sensor is mandatory and the element may repeat inside one waypoint, once per sensor. §6.4's `ppo2` is the one figure the computer calculated, which is `<calculatedpo2>`; a per-cell reading has no member yet. |
+| `<waypoint><alarm>`, `<setpo2>`, `<heading>`, `<pulserate>` | no core member, and no fixture to map against. `<setpo2>` is a *maximum tolerated* ppO₂ rather than a rebreather setpoint, which is the member it would otherwise look like. |
+| `<decomodel><vpm>`, `<rgbm>` | no file in hand carries either, so §6.4c's `algorithm` has no value seeded for them yet. |
+| `<calculateprofile><profile><density>` | a water density in kg/m³ — Shearwater Cloud Desktop writes `1030` — beside the recalculation's model, a route not read for the reason *The decompression model* gives. §6.4a's `salinity` is a named setting and carries no density: the two are different members, neither derivable from the other, and a density arrives in a minor version when a reader maps one. |
+| `<informationbeforedive><surfaceintervalbeforedive>`; `<informationafterdive><desaturationtime>`, `<noflighttime>` | no core member. |
+| `<informationafterdive><problems>` | no core member. |
+| `<informationbeforedive><purpose>`, `<informationafterdive><program>` | each a closed vocabulary holding one value — what the dive was for, `sightseeing`, `photography-videography` and `spearfishing` among nine, and the programme it was dived under, `recreation`, `training` and `military` among eight — which is the subject matter a diver's `tags` (§6.2) often carry, in a vocabulary the diver does not choose. A tag list is free text and neither element holds one, so a dive's `tags` are neither written into them nor read from them. |
+| `<informationafterdive><observations>` | a dive's `<fauna>` and `<flora>`, the slot a dive's `sightings` (§6.3a) would be read from, and no file in hand fills either. The corpus's two Shearwater Cloud files carry only its `<notes>`, the computer's mode markers (`-ShearwaterDiveModeType:6-`) rather than anything the diver wrote, and the dive's `notes` do not take them. A reading rule waits for a file that carries a species. Not reported. |
+| `<site><ecology>` | what is found at a site in general, where a sighting (§6.3a) is what one dive saw — the per-dive slot is `<observations>`, above. Reported, as every child of a site the reader does not read is (*Dive sites* above). |
+| `<site><environment>` | the class of water body a site is in — `ocean-sea`, `lake-quarry`, `river-spring`, `cave-cavern`, `pool`, `hyperbaric-chamber`, `under-ice` — which is neither a water type nor a word the diver wrote: a sea can be brackish, and reading `lake-quarry` as the tags `lake` and `quarry` would put words in the diver's mouth. Reported. |
+| `<sitedata><density>` | a water density in kg/m³, where §6.10's `water_type` is three words: reading one onto the other needs a threshold, and no file in hand carries a density to test one against. Reported. |
+| `<site><rating>`, `<sitedata><difficulty>` | the place's rating, and its difficulty on UDDF's ten steps. §6.10 carries neither: how a diver rates a place is what their rated dives there say, and no two difficulty scales agree, nor does any say who judged. Each is reported. |
+| `<sitedata><averagevisibility>`, `<minimumvisibility>`, `<maximumvisibility>` | the visibility a site usually has, which is an aggregate of dives rather than a fact about the place, and the diver's own dives there carry theirs (§6.2). Each is reported. |
+| `<sitedata><arealength>`, `<areawidth>`, `<bottom>`, `<terrain>`, `<globallightintensity>` | the site's extent, its seabed and its light, which §6.10 has no member for. Each is reported. |
+| `<sitedata><wreck>`, `<cave>`, `<indoor>`, `<lake>`, `<river>`, `<shore>` | the particulars of a kind of place — a wreck's ship and its sinking, a cave, an indoor pool's address. A charted wreck's are a registry entry's, which `external_ids` is the door to. Each is reported. |
+| `<geography><address>`, `<timezone>` on a site | a postal address, which a site's `location` is not — §6.9's is a named place — and a zone, which a dive's `started_at` carries as its offset (§5.2). Each is reported. |
+| `<trippart><relateddives>` | the reverse of `<tripmembership>`; no writer in the corpus emits it. Not reported. |
+| a trip's `<aliasname>` and `<rating>`; a part's `<aliasname>`, `<rating>`, `<priceperdive>` and `<pricedivepackage>` | §6.8 and §6.9a carry none of them. None is reported (*Trips* above). |
+| `<trippart @type>` | `boat`, `hotel`, `individual` or `organized`, and reported. What a part gained was a reference, not a type: the contact its `accommodation_uuid` names says whether the diver slept aboard (`liveaboard`) or ashore (`accommodation`), and `individual` and `organized` say how the trip was booked, which nothing stores ([divejson/divejson's CONTRIBUTING.md](https://github.com/divejson/divejson/blob/main/CONTRIBUTING.md#proposing-additions-to-the-data-model)). A reader that wants it has `extensions`. |
+| a contact's `<aliasname>` and `<rating>`; a base's `<priceperdive>`, `<pricedivepackage>` and `<link>`; an accommodation's `<category>` | §6.18 carries none of them, and says so under *Deferred*. Each is reported. |
+| a base's `<guide>` that no dive links | a buddy on the base's staff with no dive to have led: §6.18 defers a base's guides, and a person's role lives on a reference, which needs an occasion to sit on. Reported. A guide a dive links is read (*People* above). |
+| a buddy's `<address>`, `<equipment>`, `<medical>`, `<education>`, `<divepermissions>`, `<diveinsurances>`, its `<personal>` beyond the three names, and its `<contact><homepage>` | §6.20 carries a name, an email, a phone and notes, and names the rest under *Deferred*. Each is reported (*People* above). |
+| `<contact><language>`, `<fax>` on any shape a contact or a person is read from | no member. Each is reported. |
+| `<vessel>`, with its `<shiptype>`, `<marina>` and `<shipdimension>` | a boat, which §6.18 does not model: the operator is the contact and the vessel is reported. |
+| `<purchase>` | a piece of kit's price, date and shop. Its inline `<shop>` is read as a contact (*Contacts* above) and the purchase is reported — on a piece that is read; a dropped piece's goes with it (*Gear* above). |
+| `<mix><n2>`, `<ar>`, `<h2>` | §6.3 models the remainder as nitrogen and does not model argon or trace gases. |
+| `courses`, `gear_sets` | UDDF has no slot for either. |
+| `<owner><education><certification>` | the slot a diver's `certifications` (§6.16) would be read from, and no file in the corpus fills it. Not read. |
+| gear service — §6.14's schedules and §6.15's records | UDDF's `<serviceinterval>` and `<nextservicedate>` are on every piece, and neither is a schedule with history: the first is whole days between services and the second a date, with no start, no baseline and no service performed (*Gear* above). Neither is read. |
+| `<insurance><aliasname>`, `<issuedate>`, `<notes>` | §6.1's Insurance holds the insurer, the diver's identifier with it and the last day of cover, and none of these is any of the three. Each is reported. |
+| `<personal><membership>` | an organisation and a member id, which may be a club, a federation or an insurer, and nothing in the element says which: UDDF's own sample document gives it a diving federation. Read as an insurance, a club membership would come back as a policy nobody holds. |
+| every `<phone>` and `<mobilephone>` but the one read | §6.1 carries one phone, the way it carries one email, and so do §6.18 and §6.20. Each other is reported. |
+
+## Known writer artefacts
+
+Things a converted file will show that are the source writer's doing rather than the
+converter's. Recording them here saves the next reader the round trip.
+
+- **Subsurface discards every depth-less waypoint** on import, so a temperature curve
+  sampled on its own axis arrives decimated — 706 readings became 29 in one measured case.
+  It also stores a temperature only where the value changes.
+- **Subsurface fabricates a six-point depth profile** for a dive that has none, built from
+  max depth and duration. It is in its stored data, not merely in its export, so nothing
+  downstream can tell those samples from recorded ones. The converter carries them through
+  as recorded rather than trimming them away: they are what the file says.
+- **Subsurface recomputes duration and mean depth** from its own samples, so both can differ
+  from the values the original log held.
+- **Subsurface loses trips, gear and weights entirely** — its UDDF import reads no trip
+  element at all, and the only equipment it reads is the dive computer's model.
+- **Subsurface writes one placeholder `<divebase>` into every export** — `allbase`, named
+  `Subsurface Divebase`, linked from nothing. *Contacts* above is why it does not arrive as a
+  contact.
+- **Oceanic+ writes a GPS altitude on its sites**, so a site at sea level read from one of
+  its files can carry an `altitude` a few metres either side of zero. It is read as written:
+  the reader cannot tell a satellite's altitude from a surveyed one.
+- **divelogs.de reads a missing depth as zero**, producing a profile that saws between the
+  seabed and the surface on every other sample, and writes `0.000000` coordinates for every
+  site.
+- **divelogs.de empties every string containing an ampersand** on export, while holding the
+  correct value in its own database.

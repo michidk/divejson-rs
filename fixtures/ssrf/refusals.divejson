@@ -1,0 +1,118 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-05T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "99ca578d-a074-52d2-9216-e98057a33dcb",
+      "number": 1,
+      "started_at": "2026-05-01T09:15:00",
+      "submerged_time": 2480,
+      "cylinders": [
+        {
+          "volume": 11.1,
+          "end_pressure": 0.0,
+          "oxygen": 21.0
+        }
+      ],
+      "recordings": [
+        {
+          "profile": {
+            "duration": 30000,
+            "depth": {
+              "times": [
+                0,
+                30000
+              ],
+              "values": [
+                0,
+                620
+              ]
+            },
+            "temperature": {
+              "times": [
+                30000
+              ],
+              "values": [
+                1950
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "d51dfcdf-e98d-5027-9652-7a5a8a4b5224",
+      "number": 3,
+      "started_at": "2026-05-02T10:00:00",
+      "site_uuids": [
+        "5508e90d-683a-5d1f-8d82-b3214e43d495"
+      ],
+      "max_depth": 18.4,
+      "bottom_temperature": 21.0,
+      "recordings": [
+        {
+          "device": {
+            "model": "Suunto Ocean"
+          }
+        },
+        {
+          "device": {
+            "model": "Garmin Descent"
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "6f6041b4-d396-5a30-8e03-db3e210e8c0c",
+      "number": 4,
+      "started_at": "2026-05-03T08:40:00",
+      "cylinders": [
+        {
+          "volume": 7.0,
+          "end_pressure": 60.0
+        }
+      ],
+      "recordings": [
+        {
+          "profile": {
+            "duration": 120000,
+            "depth": {
+              "times": [
+                0,
+                120000
+              ],
+              "values": [
+                0,
+                900
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "uuid": "5508e90d-683a-5d1f-8d82-b3214e43d495",
+      "name": "Blue Hole"
+    },
+    {
+      "uuid": "3be14560-ba98-527b-8981-e21100855617",
+      "name": "Canyon"
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "ssrf",
+      "ssrf_version": "3",
+      "source_generator": {
+        "name": "subsurface"
+      }
+    }
+  }
+}

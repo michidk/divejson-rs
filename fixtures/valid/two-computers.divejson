@@ -1,0 +1,193 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-08T19:40:00+03:00",
+  "generator": {
+    "name": "DiveJSON fixtures"
+  },
+  "diver": {
+    "uuid": "0198a6f0-2222-7101-8000-000000000101",
+    "name": "Alex Trim"
+  },
+  "dives": [
+    {
+      "uuid": "0198a6f0-2222-7110-8000-000000000110",
+      "number": 431,
+      "started_at": "2026-09-08T15:17:38.670+03:00",
+      "submerged_time": 3051,
+      "notes": "Two computers, and the app exported the Ocean's dive twice.",
+      "max_depth": 19.04,
+      "avg_depth": 10.74,
+      "bottom_temperature": 26.1,
+      "water_type": "salt",
+      "site_uuids": [
+        "0198a6f0-2222-7140-8000-000000000140"
+      ],
+      "cylinders": [
+        {
+          "volume": 12.0,
+          "start_pressure": 207.34,
+          "end_pressure": 47.47,
+          "oxygen": 33.0,
+          "gas_number": 0
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "model": "Suunto Ocean",
+            "serial": "000000000042",
+            "firmware": "2.51.28",
+            "name": "Porvoo",
+            "dive_number": 3
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "algorithm": "rgbm",
+            "name": "Suunto Fused RGBM 2",
+            "conservatism": -1
+          },
+          "surface_pressure": 1.012,
+          "cns_start": 0.0,
+          "cns_end": 9.0,
+          "otu_start": 0.0,
+          "otu_end": 22.0,
+          "source_files": [
+            {
+              "uuid": "0198a6f0-2222-7120-8000-000000000120",
+              "original_filename": "ocean-export.json",
+              "content_type": "application/json",
+              "byte_size": 1401017,
+              "sha256": "9a1f0c7b2e4d6583a70b1c2d3e4f5061728394a5b6c7d8e9f0a1b2c3d4e5f607",
+              "extensions": {
+                "opendiving": {
+                  "parser_key": "suunto_json"
+                }
+              }
+            },
+            {
+              "uuid": "0198a6f0-2222-7121-8000-000000000121",
+              "original_filename": "ocean-export.fit",
+              "content_type": "application/vnd.ant.fit",
+              "byte_size": 30630,
+              "sha256": "1b2c3d4e5f60718293a4b5c6d7e8f9012345678abcdef0123456789abcdef012",
+              "extensions": {
+                "opendiving": {
+                  "parser_key": "fit"
+                }
+              }
+            }
+          ],
+          "profile": {
+            "duration": 3473000,
+            "depth": {
+              "times": [
+                0,
+                60000,
+                210000,
+                240000,
+                1800000,
+                3000000,
+                3473000
+              ],
+              "values": [
+                0,
+                830,
+                32,
+                210,
+                1904,
+                620,
+                0
+              ]
+            },
+            "temperature": {
+              "times": [
+                0,
+                1800000
+              ],
+              "values": [
+                2810,
+                2610
+              ]
+            },
+            "pressures": [
+              {
+                "times": [
+                  0,
+                  1800000,
+                  3400000
+                ],
+                "values": [
+                  2073,
+                  1180,
+                  475
+                ],
+                "gas_number": 0
+              }
+            ],
+            "events": [
+              {
+                "time": 0,
+                "type": "gas_switch",
+                "gas_number": 0
+              }
+            ]
+          }
+        },
+        {
+          "device": {
+            "brand": "Shearwater",
+            "model": "Perdix 3",
+            "serial": "D9000042"
+          },
+          "mode": "gauge",
+          "started_at": "2026-09-08T15:18:10.000+03:00",
+          "surface_pressure": 1.009,
+          "profile": {
+            "duration": 2940000,
+            "depth": {
+              "times": [
+                0,
+                60000,
+                180000,
+                1770000,
+                2940000
+              ],
+              "values": [
+                0,
+                790,
+                400,
+                1910,
+                0
+              ]
+            },
+            "temperature": {
+              "times": [
+                0,
+                1770000
+              ],
+              "values": [
+                2800,
+                2600
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "uuid": "0198a6f0-2222-7140-8000-000000000140",
+      "name": "House Reef",
+      "location": {
+        "name": "Dahab, Egypt"
+      },
+      "position": {
+        "latitude": 28.4965,
+        "longitude": 34.5168
+      }
+    }
+  ]
+}

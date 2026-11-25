@@ -1,0 +1,124 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-05T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "29e7c994-34d6-5135-940d-1ec2b3a7e42d",
+      "started_at": "2026-04-17T11:49:23.510+02:00",
+      "submerged_time": 4001,
+      "max_depth": 45.91,
+      "avg_depth": 20.87,
+      "entry_position": {
+        "latitude": 28.567251205444336,
+        "longitude": 34.53325653076172
+      },
+      "exit_position": {
+        "latitude": 28.56723,
+        "longitude": 34.533233
+      },
+      "cylinders": [
+        {
+          "start_pressure": 211.625,
+          "end_pressure": 127.15625,
+          "gas_number": 0
+        },
+        {
+          "gas_number": 1
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Suunto",
+            "serial": "000000000000",
+            "firmware": "2.40.56",
+            "name": "Suunto Ocean"
+          },
+          "profile": {
+            "duration": 4299990,
+            "depth": {
+              "times": [
+                160,
+                1200000,
+                4000020
+              ],
+              "values": [
+                145,
+                4464,
+                132
+              ]
+            },
+            "ceiling": {
+              "times": [
+                1200000
+              ],
+              "values": [
+                300
+              ]
+            },
+            "temperature": {
+              "times": [
+                60000
+              ],
+              "values": [
+                2235
+              ]
+            },
+            "pressures": [
+              {
+                "times": [
+                  160,
+                  1200000,
+                  4000020,
+                  4299990
+                ],
+                "values": [
+                  2116,
+                  1839,
+                  1272,
+                  1273
+                ],
+                "gas_number": 0
+              }
+            ],
+            "events": [
+              {
+                "time": 20,
+                "type": "gas_switch",
+                "gas_number": 0
+              },
+              {
+                "time": 1230000,
+                "type": "ceiling_violation",
+                "label": "Ceiling Broken"
+              },
+              {
+                "time": 2075190,
+                "type": "gas_switch",
+                "gas_number": 1
+              },
+              {
+                "time": 3840000,
+                "type": "safety_stop"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "suunto_json",
+      "source_generator": {
+        "name": "Suunto Ocean",
+        "version": "2.40.56"
+      }
+    }
+  }
+}

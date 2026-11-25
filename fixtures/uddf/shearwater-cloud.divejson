@@ -1,0 +1,205 @@
+{
+  "format": "divejson",
+  "version": "1.0",
+  "exported_at": "2026-09-05T00:00:00+00:00",
+  "generator": {
+    "name": "divejson convert",
+    "version": "0.13.0"
+  },
+  "dives": [
+    {
+      "uuid": "edcffec6-a81e-59a1-8699-f18db44c7245",
+      "number": 1,
+      "started_at": "2026-09-08T15:18:10",
+      "submerged_time": 163,
+      "notes": "Summary:\n\nEnvironment:\n\nGas:\n\nGear:\n\nIssues:",
+      "max_depth": 4.0,
+      "avg_depth": 2.70000029,
+      "gear_uuids": [
+        "bae2b91d-674c-5d38-875d-e3d3f69da1af"
+      ],
+      "cylinders": [
+        {
+          "end_pressure": 0.0
+        },
+        {
+          "end_pressure": 0.0
+        }
+      ],
+      "recordings": [
+        {
+          "device": {
+            "brand": "Shearwater Research, Inc",
+            "model": "Perdix 3",
+            "serial": "D9772626",
+            "name": "Perdix 3"
+          },
+          "mode": "open_circuit",
+          "deco_model": {
+            "algorithm": "buhlmann",
+            "gf_low": 50,
+            "gf_high": 85
+          },
+          "surface_pressure": 1.019,
+          "profile": {
+            "duration": 180000,
+            "depth": {
+              "times": [
+                0,
+                10000,
+                20000,
+                30000,
+                40000,
+                60000,
+                80000,
+                100000,
+                120000,
+                140000,
+                160000,
+                180000
+              ],
+              "values": [
+                130,
+                200,
+                250,
+                260,
+                230,
+                360,
+                340,
+                310,
+                370,
+                290,
+                120,
+                0
+              ]
+            },
+            "temperature": {
+              "times": [
+                0,
+                10000,
+                20000,
+                30000,
+                40000,
+                60000,
+                80000,
+                100000,
+                120000,
+                140000,
+                160000,
+                180000
+              ],
+              "values": [
+                3300,
+                3300,
+                3300,
+                3200,
+                3200,
+                3200,
+                3200,
+                3100,
+                3100,
+                3100,
+                3000,
+                3000
+              ]
+            },
+            "ndl": {
+              "times": [
+                10000,
+                20000,
+                30000,
+                40000,
+                60000,
+                80000,
+                100000,
+                120000,
+                140000,
+                160000,
+                180000
+              ],
+              "values": [
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940,
+                5940
+              ]
+            },
+            "ppo2": {
+              "times": [
+                0,
+                10000,
+                20000,
+                30000,
+                40000,
+                60000,
+                100000,
+                120000,
+                140000,
+                160000,
+                180000
+              ],
+              "values": [
+                38,
+                40,
+                41,
+                42,
+                41,
+                45,
+                43,
+                45,
+                43,
+                37,
+                34
+              ]
+            },
+            "gradient_factor": {
+              "times": [
+                0,
+                160000,
+                180000
+              ],
+              "values": [
+                0,
+                1,
+                1
+              ]
+            },
+            "events": [
+              {
+                "time": 0,
+                "type": "gas_switch"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "gear": [
+    {
+      "uuid": "bae2b91d-674c-5d38-875d-e3d3f69da1af",
+      "name": "Perdix 3",
+      "brand": "Shearwater Research, Inc",
+      "serial": "D9772626",
+      "type": "computer",
+      "notes": "FirmV:39:\n\nLogV:17:"
+    }
+  ],
+  "extensions": {
+    "divejson": {
+      "converted_from": "uddf",
+      "uddf_version": "3.2.3",
+      "source_generator": {
+        "name": "Shearwater Cloud Desktop",
+        "version": "2.12.10"
+      }
+    }
+  }
+}
