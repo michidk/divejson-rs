@@ -41,8 +41,8 @@ The Rust implementation of DiveJSON. The format itself is decided in
   `docs/uddf-mapping.md`, `write.rs` DiveJSON to UDDF after `docs/uddf-writing.md`; `mod.rs`
   holds the report types (`Note`, `NoteKind`, `Report`) and the shared unit helpers. The
   divejson-py reference implementation (`divejson/uddf.py`, `uddf_write.py`) is MIT and may be
-  followed. XML parsing and writing is the sibling `uddf` crate (`../uddf-rs`), a path
-  dependency until it is on crates.io; a field its model lacks is added there first.
+  followed. XML parsing and writing uses the `uddf` crate from a pinned Git revision
+  until it is on crates.io; a field its model lacks is added there first.
   `tests/uddf.rs` runs every reader and writer pair.
 - Strict lints: no `unwrap`, `expect`, `panic` or indexing in library code. Keep the crate
   `no_std` + `alloc` without the `std` feature; put `std`-only code behind it.

@@ -29,7 +29,7 @@ jiff = { version = "1.0.3", default-features = false }
 unicase = { version = "2.8.1", default-features = false }
 uuid = { version = "1.16.0", default-features = false }
 # Switch to the crates.io release once uddf is published.
-uddf = { version = "0.0.0", path = "../uddf-rs", optional = true }
+uddf = { version = "0.0.0", git = "https://github.com/michidk/uddf-rs", rev = "07fd28c0386536e56e8f848400f27c0286c6552c", optional = true }
 
 [dev-dependencies]
 jsonschema = { version = "0.63.1", default-features = false }

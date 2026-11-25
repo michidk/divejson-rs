@@ -27,3 +27,4 @@ wildcards = "deny"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+allow-git = ["https://github.com/michidk/uddf-rs"]
