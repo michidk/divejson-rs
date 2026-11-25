@@ -90,7 +90,7 @@ checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 
 [[package]]
 name = "divejson"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "jiff",
  "jsonschema",
@@ -764,8 +764,9 @@ dependencies = [
 
 [[package]]
 name = "uddf"
-version = "0.0.0"
-source = "git+https://github.com/michidk/uddf-rs?rev=07fd28c0386536e56e8f848400f27c0286c6552c#07fd28c0386536e56e8f848400f27c0286c6552c"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06ff42c03e507f21d0b1bc49a20c2efd6a3c2bb814b81e0c074c6910330b3417"
 dependencies = [
  "jiff",
  "quick-xml",
